@@ -284,7 +284,7 @@ const BluetoothDevices = () => {
                 setIsScanning(false)
             })
             .catch(() => setIsScanning(false))
-    } 
+    }
 
     const requestPermissions = async () => {
         try {
@@ -325,34 +325,40 @@ const BluetoothDevices = () => {
             reportDelay: 0,
             legacy: false,
         })
-        .then(() => {
-            console.log("Scan started")
+            .then(() => {
+                console.log("Scan started")
 
-            pollInterval.current = setInterval(() => {
-                BleManager.getDiscoveredPeripherals().then((peripherals) => {
-                    if (peripherals.length > 0) {
-                        for(let i=0;i<peripherals.length;i++){
+                pollInterval.current = setInterval(() => {
+                    BleManager.getDiscoveredPeripherals().then((peripherals) => {
+                        if (peripherals.length > 0) {
+                            setDevices([...peripherals])
+                        }
+                    })
+                }, 1000)
+
+                scanTimeout.current = setTimeout(() => {
+                    stopPolling()
+                    BleManager.getDiscoveredPeripherals().then((peripherals) => {
+                        console.log('Scan complete — total:', peripherals.length)
+                        peripherals.forEach((device, index) => {
+                            console.log(`Device ${index + 1}:`, {
+                                name: device.name || 'Unnamed',
+                                id: device.id,
+                                rssi: device.rssi,
+                            })
+                        })
+                        for (let i = 0; i < peripherals.length; i++) {
                             console.log(peripherals[i]);
                         }
-                        
-                        setDevices([...peripherals])
-                    }
-                })
-            }, 1000)
-
-            scanTimeout.current = setTimeout(() => {
-                stopPolling()
-                BleManager.getDiscoveredPeripherals().then((peripherals) => {
-                    console.log('Scan complete — total:', peripherals.length)
-                    setDevices(peripherals)
-                })
+                        setDevices(peripherals)
+                    })
+                    setIsScanning(false)
+                }, 11000)
+            })
+            .catch((err: any) => {
+                console.error("Scan failed:", err)
                 setIsScanning(false)
-            }, 11000)
-        })
-        .catch((err: any) => {
-            console.error("Scan failed:", err)
-            setIsScanning(false)
-        })
+            })
     }
 
     return (
