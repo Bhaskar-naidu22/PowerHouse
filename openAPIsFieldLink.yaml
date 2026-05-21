@@ -1,0 +1,503 @@
+openapi: 3.0.1
+
+info:
+  title: FieldLink API
+  version: 1.0.1
+  description: API specification for FieldLink electrical infrastructure onboarding app
+
+components:
+  schemas:
+    LoginRequestDto:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    LoginResponseDTO:
+      type: object
+      properties:
+        jwt:
+          type: string
+
+    UserProfileDto:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+        role:
+          type: string
+          enum: [electrician, admin]
+
+    SignUpRequestDto:
+      type: object
+      required: [firstName, lastName, email, phoneNumber]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        phoneNumber:
+          type: string
+
+    BuildingDTO:
+      type: object
+      properties:
+        buildingName:
+          type: string
+        buildingId:
+          type: string
+          format: uuid
+
+    BuildingListDTO:
+      type: array
+      items:
+        $ref: "#/components/schemas/BuildingDTO"
+
+    BlockListDTO:
+      type: object
+      blockId:
+        type: string
+        format: uuid
+      blockName:
+        type: string
+      flats:
+        type: array
+        items:
+          $ref: "#/components/schemas/FlatDetailsDTO"
+
+    FlatDetailsDTO:
+      type: object
+      properties:
+        FlatID:
+          type: string
+          format: uuid
+        FlatNo:
+          type: string
+        totalSensorsAllocated:
+          type: integer
+        totalSensorsRegistered:
+          type: integer
+        sensorsRemaining:
+          type: integer
+
+    FlatListDTO:
+      type: object
+      properties:
+        syncedAt:
+          type: string
+          format: date-time
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlockListDTO"
+        flats:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlatDetailsDTO"
+
+    FlatSyncResponseDTO:
+      type: object
+      properties:
+        syncedAt:
+          type: string
+          format: date-time
+        hasUpdates:
+          type: boolean
+        updated:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlatDetailsDTO"
+        deleted:
+          type: array
+          description: List of deleted Flats (either registration completed or flat removed)
+          items:
+            schema:
+              type: object
+              properties:
+                FlatID:
+                  type: string
+                  format: uuid
+
+    SensorsRemainingListDTO:
+      type: object
+      properties:
+        FlatID:
+          type: string
+          format: uuid
+        FlatNo:
+          type: string
+        sensorsRemaining:
+          type: integer
+
+    SwitchBoardDTO:
+      type: object
+      required: [switchBoardId, switchBoardName]
+      properties:
+        switchBoardId:
+          type: string
+          format: uuid
+        switchName:
+          type: string
+        relayId:
+          type: string
+        phaseType:
+          type: string
+          enum: [2-PHASE, 4-PHASE]
+    
+    SensorRegisterRequestDto:
+      type: object
+      required: [buildingId, flatId, sensorId, userId, registeredAt, sensorType]
+      properties:
+        buildingId:
+          type: string
+          format: uuid
+        flatId:
+          type: string
+          format: uuid
+        sensorId:
+          type: string
+          format: uuid
+        sensorType:
+          type: string
+        sensorName:
+          type: string
+          nullable: true
+        userId:
+          type: string
+        registeredAt:
+          type: string
+          format: date-time
+    
+    UserDashboardSummaryDTO:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        totalFlatsCompleted:
+          type: integer
+        totalSensorsRegistered:
+          type: integer
+        recentActivity:
+          type: array
+          description: last 5 sensors registered by this electrician
+          items:
+            $ref: "#/components/schemas/RecentActivityDTO"
+    
+    RecentActivityDTO:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        buildingName:
+          type: string
+        flatNo:
+          type: string
+        sensorType:
+          type: string
+        registeredAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        errorCode:
+          type: string
+        message:
+          type: string
+
+paths:
+  /api/User/login:
+    post:
+      summary: Authenticate User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequestDto"
+      responses:
+        "200":
+          description: Authenticaton Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponseDTO"
+        "400":
+          description: Email/Password not correct
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/User/SignUp:
+    post:
+      summary: Create a New User
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignUpRequestDto"
+      responses:
+        "201":
+          description: User Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  jwt:
+                    type: string
+        "400":
+          description: Request payload Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/User/reset-password:
+    post:
+      summary: request to reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        "200":
+          description: Link sent to your email if exists
+
+  /api/User/metaInfo:
+    get:
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: get Profile Details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileDto"
+        "400":
+          description:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  #Buildings
+
+  /api/buildings/{query}:
+    get:
+      summary: get list of Building name and Building ID
+      parameters:
+        - in: path
+          name: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: list of buildings fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildingListDTO"
+
+  /api/buildings/{buildingID}/flats:
+    get:
+      summary: get List of flats
+      parameters:
+        - in: path
+          name: buildingId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of Flats fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlatListDTO"
+        "400":
+          description: buildingID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/buildings/{buildingID}/flats/sync:
+    get:
+      summary: Sync Flats data everytime if sensors registered and comesback again to Select new sensor or add another sensor
+      parameters:
+        - in: path
+          name: buildingID
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: lastSyncedAt
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+      "200":
+        description: Sync data returned successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlatSyncResponseDTO"
+      "400":
+        description: buildingID does not exist
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ErrorResponse"
+
+  /api/flats/{flatID}/sensorsRemaining:
+    get:
+      summary: get List of Sensors remaining to Register to that flat
+      parameters:
+        - in: path
+          name: flatID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of sensors fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SensorsRemainingListDTO"
+        "400":
+          description: flatID does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  #For Relay
+  /api/flats/{flatID}/switchBoards:
+    get:
+      summary: get List of Switchboards (used when onboarding sensor is a relay)
+      parameters:
+        - in: path
+          name: flatID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of switches fetched successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SwitchBoardDTO"
+        "400":
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  #Sensors
+  /api/sensors/{flatId}/Register:
+    post:
+      summary: Register a Sensor to a Flat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SensorRegisterRequestDto"
+      responses:
+        "201":
+          description: device registered to flat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sensorName:
+                    type: string
+                  sensorId:
+                    type: string
+                    format: uuid
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/user/registeredSensors:
+    get:
+      summary: get the no of Sensors registered by the user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Data fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDashboardSummaryDTO"
+        "400":
+          description: bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
