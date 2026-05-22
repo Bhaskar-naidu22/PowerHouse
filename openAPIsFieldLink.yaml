@@ -17,7 +17,7 @@ components:
         password:
           type: string
 
-    LoginResponseDTO:
+    LoginResponseDto:
       type: object
       properties:
         jwt:
@@ -56,7 +56,7 @@ components:
         phoneNumber:
           type: string
 
-    BuildingDTO:
+    BuildingDto:
       type: object
       properties:
         buildingName:
@@ -65,27 +65,28 @@ components:
           type: string
           format: uuid
 
-    BuildingListDTO:
+    BuildingListDto:
       type: array
       items:
-        $ref: "#/components/schemas/BuildingDTO"
+        $ref: "#/components/schemas/BuildingDto"
 
-    BlockListDTO:
-      type: object
-      blockId:
-        type: string
-        format: uuid
-      blockName:
-        type: string
-      flats:
-        type: array
-        items:
-          $ref: "#/components/schemas/FlatDetailsDTO"
-
-    FlatDetailsDTO:
+    BlockListDto:
       type: object
       properties:
-        FlatID:
+        blockId:
+          type: string
+          format: uuid
+        blockName:
+          type: string
+        flats:
+          type: array
+          items:
+            $ref: "#/components/schemas/FlatDetailsDto"
+
+    FlatDetailsDto:
+      type: object
+      properties:
+        flatId:
           type: string
           format: uuid
         FlatNo:
@@ -97,7 +98,7 @@ components:
         sensorsRemaining:
           type: integer
 
-    FlatListDTO:
+    FlatListDto:
       type: object
       properties:
         syncedAt:
@@ -106,13 +107,13 @@ components:
         blocks:
           type: array
           items:
-            $ref: "#/components/schemas/BlockListDTO"
+            $ref: "#/components/schemas/BlockListDto"
         flats:
           type: array
           items:
-            $ref: "#/components/schemas/FlatDetailsDTO"
+            $ref: "#/components/schemas/FlatDetailsDto"
 
-    FlatSyncResponseDTO:
+    FlatSyncResponseDto:
       type: object
       properties:
         syncedAt:
@@ -123,22 +124,21 @@ components:
         updated:
           type: array
           items:
-            $ref: "#/components/schemas/FlatDetailsDTO"
+            $ref: "#/components/schemas/FlatDetailsDto"
         deleted:
           type: array
           description: List of deleted Flats (either registration completed or flat removed)
           items:
-            schema:
               type: object
               properties:
-                FlatID:
+                flatId:
                   type: string
                   format: uuid
 
-    SensorsRemainingListDTO:
+    SensorsRemainingListDto:
       type: object
       properties:
-        FlatID:
+        flatId:
           type: string
           format: uuid
         FlatNo:
@@ -146,9 +146,9 @@ components:
         sensorsRemaining:
           type: integer
 
-    SwitchBoardDTO:
+    SwitchBoardDto:
       type: object
-      required: [switchBoardId, switchBoardName]
+      required: [switchBoardId, switchName]
       properties:
         switchBoardId:
           type: string
@@ -160,7 +160,7 @@ components:
         phaseType:
           type: string
           enum: [2-PHASE, 4-PHASE]
-    
+
     SensorRegisterRequestDto:
       type: object
       required: [buildingId, flatId, sensorId, userId, registeredAt, sensorType]
@@ -181,11 +181,12 @@ components:
           nullable: true
         userId:
           type: string
+          format: uuid
         registeredAt:
           type: string
           format: date-time
-    
-    UserDashboardSummaryDTO:
+
+    UserDashboardSummaryDto:
       type: object
       properties:
         userId:
@@ -199,14 +200,11 @@ components:
           type: array
           description: last 5 sensors registered by this electrician
           items:
-            $ref: "#/components/schemas/RecentActivityDTO"
-    
-    RecentActivityDTO:
+            $ref: "#/components/schemas/RecentActivityDto"
+
+    RecentActivityDto:
       type: object
       properties:
-        userId:
-          type: string
-          format: uuid
         buildingName:
           type: string
         flatNo:
@@ -241,15 +239,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LoginResponseDTO"
+                $ref: "#/components/schemas/LoginResponseDto"
         "400":
           description: Email/Password not correct
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal Server Error
           content:
             application/json:
               schema:
@@ -278,7 +270,7 @@ paths:
                   jwt:
                     type: string
         "400":
-          description: Request payload Error
+          description: Bad Request
           content:
             application/json:
               schema:
@@ -287,25 +279,21 @@ paths:
   /api/User/reset-password:
     post:
       summary: request to reset password
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [email]
-              properties:
-                email:
-                  type: string
-                  format: email
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Link sent to your email if exists
 
-  /api/User/metaInfo:
+  /api/User/{userId}/metaInfo:
     get:
+      summary: Get user profile and meta information
       parameters:
-        - in: query
+        - in: path
           name: userId
           required: true
           schema:
@@ -319,7 +307,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserProfileDto"
         "400":
-          description:
+          description: Bad request
           content:
             application/json:
               schema:
@@ -327,11 +315,11 @@ paths:
 
   #Buildings
 
-  /api/buildings/{query}:
+  /api/buildings:
     get:
       summary: get list of Building name and Building ID
       parameters:
-        - in: path
+        - in: query
           name: query
           required: true
           schema:
@@ -342,9 +330,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BuildingListDTO"
+                $ref: "#/components/schemas/BuildingListDto"
+        "204":
+          description: No Results for the query
 
-  /api/buildings/{buildingID}/flats:
+  /api/buildings/{buildingId}/flats:
     get:
       summary: get List of flats
       parameters:
@@ -360,20 +350,22 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FlatListDTO"
+                $ref: "#/components/schemas/FlatListDto"
         "400":
-          description: buildingID does not exist
+          description: Bad Request
+        "404":
+          description: buildingId does not exist
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /api/buildings/{buildingID}/flats/sync:
+  /api/buildings/{buildingId}/flats/sync:
     get:
       summary: Sync Flats data everytime if sensors registered and comesback again to Select new sensor or add another sensor
       parameters:
         - in: path
-          name: buildingID
+          name: buildingId
           required: true
           schema:
             type: string
@@ -385,25 +377,27 @@ paths:
             type: string
             format: date-time
       responses:
-      "200":
-        description: Sync data returned successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FlatSyncResponseDTO"
-      "400":
-        description: buildingID does not exist
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ErrorResponse"
+        "200":
+          description: Sync data returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlatSyncResponseDto"
+        "400":
+          description: Bad Request   
+        "404":
+          description: buildingId does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  /api/flats/{flatID}/sensorsRemaining:
+  /api/flats/{flatId}/sensorsRemaining:
     get:
       summary: get List of Sensors remaining to Register to that flat
       parameters:
         - in: path
-          name: flatID
+          name: flatId
           required: true
           schema:
             type: string
@@ -414,21 +408,23 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SensorsRemainingListDTO"
+                $ref: "#/components/schemas/SensorsRemainingListDto"
         "400":
-          description: flatID does not exist
+          description: Bad request
+        "404":
+          description: flatId does not exist
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
   #For Relay
-  /api/flats/{flatID}/switchBoards:
+  /api/flats/{flatId}/switchBoards:
     get:
       summary: get List of Switchboards (used when onboarding sensor is a relay)
       parameters:
         - in: path
-          name: flatID
+          name: flatId
           required: true
           schema:
             type: string
@@ -441,7 +437,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/SwitchBoardDTO"
+                  $ref: "#/components/schemas/SwitchBoardDto"
         "400":
           description: bad request
           content:
@@ -449,7 +445,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   #Sensors
-  /api/sensors/{flatId}/Register:
+  /api/sensors/Register:
     post:
       summary: Register a Sensor to a Flat
       requestBody:
@@ -478,9 +474,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /api/user/registeredSensors:
+  /api/User/{userId}/dashboardSummary:
     get:
-      summary: get the no of Sensors registered by the user
+      summary: get Dashboard Summary of the user
       parameters:
         - in: path
           name: userId
@@ -494,7 +490,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserDashboardSummaryDTO"
+                $ref: "#/components/schemas/UserDashboardSummaryDto"
         "400":
           description: bad request
           content:
