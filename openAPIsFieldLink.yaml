@@ -66,9 +66,16 @@ components:
           format: uuid
 
     BuildingListDto:
-      type: array
-      items:
-        $ref: "#/components/schemas/BuildingDto"
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuildingDto"
+        hasNext:
+          type: boolean
+        totalCount:
+          type: integer
 
     BlockListDto:
       type: object
@@ -129,11 +136,11 @@ components:
           type: array
           description: List of deleted Flats (either registration completed or flat removed)
           items:
-              type: object
-              properties:
-                flatId:
-                  type: string
-                  format: uuid
+            type: object
+            properties:
+              flatId:
+                type: string
+                format: uuid
 
     SensorsRemainingListDto:
       type: object
@@ -324,6 +331,19 @@ paths:
           required: true
           schema:
             type: string
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 20
       responses:
         "200":
           description: list of buildings fetched successfully
@@ -384,7 +404,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/FlatSyncResponseDto"
         "400":
-          description: Bad Request   
+          description: Bad Request
         "404":
           description: buildingId does not exist
           content:
