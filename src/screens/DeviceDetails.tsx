@@ -1,7 +1,10 @@
-import { Alert, DevMenu, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { Alert, DevMenu, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, NativeEventEmitter, NativeModules } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useRoute } from '@react-navigation/native'
 import BleManager from 'react-native-ble-manager'
+
+const BleManagerModule = NativeModules.BleManager;
+const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
 const DeviceDetails = () => {
     const route = useRoute<any>()
@@ -10,6 +13,7 @@ const DeviceDetails = () => {
 
     const [writeChar, setWriteChar] = useState<any>(null)
     const [notifyChar, setNotifyChar] = useState<any>(null)
+    const [inputKey, setInputKey] = useState<string>('')
     const HASH_KEY = ''
 
     const saveName = () => {
@@ -25,7 +29,7 @@ const DeviceDetails = () => {
         const customChars = services.characteristics.filter(
             (c: any) => !standardServices.includes(c.service)
         )
-        console.log('Custom characteristics:', JSON.stringify(customChars, null, 2))
+        // console.log('Custom characteristics:', JSON.stringify(customChars, null, 2))
 
         const writeChar = customChars.find(
             (c: any) => c.properties.Write && !c.properties.Notify
@@ -44,22 +48,46 @@ const DeviceDetails = () => {
         return { writeChar, notifyChar, readChar }
     }
     useEffect(() => {
+        let updateListener: any;
         const getServices = async () => {
             try {
                 const services = await BleManager.retrieveServices(device.id)
-                console.log('Services retrieved', JSON.stringify(services, null, 2))
+                // console.log('Services retrieved', JSON.stringify(services, null, 2))
                 const { writeChar, notifyChar } = identifyCharacteristics(services)
                 setWriteChar(writeChar)
                 setNotifyChar(notifyChar)
+
+                debugger;
+                if (notifyChar) {
+                    await BleManager.startNotification(device.id, notifyChar.service, notifyChar.characteristic);
+                    console.log('--- Subscribed to Notifications ---');
+
+                    updateListener = bleManagerEmitter.addListener(
+                        'BleManagerDidUpdateValueForCharacteristic',
+                        ({ value, characteristic }) => {
+                            if (characteristic.toLowerCase() === notifyChar.characteristic.toLowerCase()) {
+                                console.log('RAW RESPONSE FROM SENSOR (BYTES):', value);
+                                console.log('PARSED RESPONSE (AS TEXT):', String.fromCharCode(...value));
+                            }
+                        }
+                    );
+                }   
             } catch (err) {
                 console.error('Failed to retrieve services:', err)
             }
         }
         getServices()
+        return () => {
+            if (updateListener) updateListener.remove();
+        }
     }, [])
     const authenticate = async () => {
+        if (!inputKey.trim()) {
+            Alert.alert("Error", "Please type a hash key first");
+            return;
+        }
         try {
-            const hashBytes = Array.from(HASH_KEY)
+            const hashBytes = Array.from(inputKey)
                 .map((c: string) => c.charCodeAt(0))
 
             console.log(writeChar.service,
@@ -94,6 +122,15 @@ const DeviceDetails = () => {
                 {/* <TouchableOpacity style={styles.saveButton} onPress={saveName}>
                     <Text style={styles.saveButtonText}>Save Name</Text>
                 </TouchableOpacity> */}
+                <TextInput
+                    style={styles.input}
+                    value={inputKey}
+                    onChangeText={setInputKey}
+                    placeholder="e.g. secret123 or A1B2C3"
+                    placeholderTextColor="#999"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                />
                 <TouchableOpacity
                     style={styles.authButton}
                     onPress={authenticate}
