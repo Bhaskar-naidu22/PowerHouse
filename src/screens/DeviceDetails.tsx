@@ -50,18 +50,20 @@ const DeviceDetails = () => {
 
                 // if (notifyChars) {
                 //     const firstNotify = notifyChars[0]
-                    await BleManager.startNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935");
-                    console.log('--- Subscribed to Notifications ---');
+                
 
-                    updateListener = bleManagerEmitter.addListener(
-                        'BleManagerDidUpdateValueForCharacteristic',
-                        ({ value, characteristic }) => {
-                            if (characteristic.toLowerCase() === "83ab48e3-32c0-42cf-95fc-5c188f7b9935") {
-                                console.log('RAW RESPONSE FROM SENSOR (BYTES):', value);
-                                console.log('PARSED RESPONSE (AS TEXT):', String.fromCharCode(...value));
-                            }
-                        }
-                    );
+                updateListener = bleManagerEmitter.addListener(
+                    'BleManagerDidUpdateValueForCharacteristic',
+                    // ({ value, characteristic }) => {
+                    //     if (characteristic.toLowerCase() === "83ab48e3-32c0-42cf-95fc-5c188f7b9935") {
+                    //         console.log('RAW RESPONSE FROM SENSOR (BYTES):', value);
+                    //         console.log('PARSED RESPONSE (AS TEXT):', String.fromCharCode(...value));
+                    //     }
+                    // }
+                    data =>{
+                        console.log("Even BleManagerDidUpdateValueForCharacteristic", data);
+                    }
+                );
                 // }
             } catch (err) {
                 console.error('Failed to retrieve services:', err)
@@ -70,62 +72,75 @@ const DeviceDetails = () => {
         getServices()
         return () => {
             if (updateListener) updateListener.remove();
-            const firstNotify = notifyChars[0] 
-            // BleManager.stopNotification(device.id, firstNotify.service, firstNotify.characteristic)
-            //     .catch((err) => console.error('Stop notification error:', err))
+            BleManager.stopNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935")
+                .catch((err) => console.error('Stop notification error:', err))
+
             BleManager.disconnect(device.id)
                 .then(() => console.log('Disconnected'))
                 .catch((err) => console.error('Disconnect error:', err))
 
-        }
+}
     }, [])
-    const authenticate = async () => {
-        if (!inputKey.trim()) {
-            Alert.alert("Error", "Please type a hash key first");
-            return;
-        }
-        try {
-            const hashBytes = Array.from(inputKey)
-                .map((c: string) => c.charCodeAt(0))
-
-            console.log(
-                hashBytes)
-            await BleManager.write(
-                device.id,
-                "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
-                "83ab48e2-32c0-42cf-95fc-5c188f7b9935",
-                hashBytes
-            )
-            console.log('Hash key sent')
-        } catch (err) {
-            console.error('Failed to send hash key:', err)
-        }
+const authenticate = async () => {
+    if (!inputKey.trim()) {
+        Alert.alert("Error", "Please type a hash key first");
+        return;
     }
-    return (
-        <ScrollView>
-            <Text style={styles.value}>
-                {device.id}, {device.name}
-            </Text>
+    try {
+        const hashBytes = Array.from(inputKey)
+            .map((c: string) => c.charCodeAt(0))
 
-            <View style={styles.card}>
-                <TextInput
-                    style={styles.input}
-                    value={inputKey}
-                    onChangeText={setInputKey}
-                    placeholder="e.g. secret123 or A1B2C3"
-                    placeholderTextColor="#999"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                />
-                <TouchableOpacity
-                    style={styles.authButton}
-                    onPress={authenticate}
-                >
-                    <Text style={styles.authButtonText}>Authenticate with Hash Key</Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
-    )
+        console.log(
+            hashBytes)
+        await BleManager.write(
+            device.id,
+            "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
+            "83ab48e2-32c0-42cf-95fc-5c188f7b9935",
+            hashBytes
+        )
+        console.log('Hash key sent')
+
+        // await new Promise<void>(resolve => setTimeout(resolve, 1000))
+        // const response = await BleManager.read(
+        //     device.id,
+        //     "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
+        //     "83ab48e3-32c0-42cf-95fc-5c188f7b9935"
+        // )
+        await BleManager.startNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935");
+        console.log('--- Subscribed to Notifications ---');
+        
+        // const responseText = String.fromCharCode(...response)
+        // console.log('RAW RESPONSE (BYTES):', response)
+        // console.log('PARSED RESPONSE (TEXT):', responseText)
+    } catch (err) {
+        console.error('Failed to send hash key:', err)
+    }
+}
+return (
+    <ScrollView>
+        <Text style={styles.value}>
+            {device.id}, {device.name}
+        </Text>
+
+        <View style={styles.card}>
+            <TextInput
+                style={styles.input}
+                value={inputKey}
+                onChangeText={setInputKey}
+                placeholder="e.g. secret123 or A1B2C3"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+            />
+            <TouchableOpacity
+                style={styles.authButton}
+                onPress={authenticate}
+            >
+                <Text style={styles.authButtonText}>Authenticate with Hash Key</Text>
+            </TouchableOpacity>
+        </View>
+    </ScrollView>
+)
 }
 
 export default DeviceDetails
