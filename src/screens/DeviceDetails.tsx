@@ -48,20 +48,19 @@ const DeviceDetails = () => {
                 // setNotifyChars(notifyChars)
                 // setReadChars(readChars)
 
-                // if (notifyChars) {
-                //     const firstNotify = notifyChars[0]
-                
+                await BleManager.startNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935");
+                console.log('--- Hardware Notification Channel Active ---');
 
                 updateListener = bleManagerEmitter.addListener(
                     'BleManagerDidUpdateValueForCharacteristic',
-                    // ({ value, characteristic }) => {
-                    //     if (characteristic.toLowerCase() === "83ab48e3-32c0-42cf-95fc-5c188f7b9935") {
-                    //         console.log('RAW RESPONSE FROM SENSOR (BYTES):', value);
-                    //         console.log('PARSED RESPONSE (AS TEXT):', String.fromCharCode(...value));
-                    //     }
-                    // }
-                    data =>{
-                        console.log("Even BleManagerDidUpdateValueForCharacteristic", data);
+                    (data) => {
+                        console.log("====================================");
+                        console.log("🚨 INCOMING PACKET DETECTED!");
+                        console.log("RAW DATA PACKET:", data);
+                        if (data.value) {
+                            console.log('PARSED AS TEXT:', String.fromCharCode(...data.value));
+                        }
+                        console.log("====================================");
                     }
                 );
                 // }
@@ -106,9 +105,6 @@ const authenticate = async () => {
         //     "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
         //     "83ab48e3-32c0-42cf-95fc-5c188f7b9935"
         // )
-        await BleManager.startNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935");
-        console.log('--- Subscribed to Notifications ---');
-        
         // const responseText = String.fromCharCode(...response)
         // console.log('RAW RESPONSE (BYTES):', response)
         // console.log('PARSED RESPONSE (TEXT):', responseText)
