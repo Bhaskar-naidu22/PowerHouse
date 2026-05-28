@@ -115,9 +115,9 @@ const BluetoothDevices = () => {
                                 rssi: device.rssi,
                             })
                         })
-                        for (let i = 0; i < peripherals.length; i++) {
-                            console.log(peripherals[i]);
-                        }
+                        // for (let i = 0; i < peripherals.length; i++) {
+                        //     console.log(peripherals[i]);
+                        // }
                         setDevices(peripherals)
                     })
                     setIsScanning(false)

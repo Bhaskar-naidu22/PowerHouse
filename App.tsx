@@ -4,11 +4,12 @@ import BluetoothDevices from './src/screens/BluetoothDevices'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { NavigationContainer } from '@react-navigation/native'
 import DeviceDetails from './src/screens/DeviceDetails'
+import ProfileScreen from './src/screens/ProfileScreen'
 
 const Stack = createNativeStackNavigator()
 
 const App = () => {
-  // return <BluetoothDevices/>
+  // return <ProfileScreen/>
   return (
     <NavigationContainer>
       <Stack.Navigator>

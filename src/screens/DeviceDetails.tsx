@@ -1,4 +1,4 @@
-import { Alert, DevMenu, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, NativeEventEmitter, NativeModules } from 'react-native'
+import { Alert, DevMenu, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, NativeEventEmitter, NativeModules, Platform } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useRoute } from '@react-navigation/native'
 import BleManager from 'react-native-ble-manager'
@@ -9,69 +9,60 @@ const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 const DeviceDetails = () => {
     const route = useRoute<any>()
     const { device } = route.params
-    const [newName, setNewName] = useState<string>(device.name)
 
-    const [writeChar, setWriteChar] = useState<any>(null)
-    const [notifyChar, setNotifyChar] = useState<any>(null)
+    const [writeChars, setWriteChars] = useState<any[]>([])
+    const [notifyChars, setNotifyChars] = useState<any[]>([])
+    const [readChars, setReadChars] = useState<any[]>([])
     const [inputKey, setInputKey] = useState<string>('')
-    const HASH_KEY = ''
 
-    const saveName = () => {
-        if (!newName) {
-            Alert.alert("name cannot be empty")
-            return
-        }
-
-    }
-    const identifyCharacteristics = (services: any) => {
-        const standardServices = ['1800', '1801', 'fe2c']
-
-        const customChars = services.characteristics.filter(
-            (c: any) => !standardServices.includes(c.service)
-        )
-        // console.log('Custom characteristics:', JSON.stringify(customChars, null, 2))
-
-        const writeChar = customChars.find(
-            (c: any) => c.properties.Write && !c.properties.Notify
-        )
-        const notifyChar = customChars.find(
-            (c: any) => c.properties.Notify
-        )
-        const readChar = customChars.find(
-            (c: any) => c.properties.Read && !c.properties.Write
-        )
-
-        console.log('Write → service:', writeChar?.service, 'char:', writeChar?.characteristic)
-        console.log('Notify → service:', notifyChar?.service, 'char:', notifyChar?.characteristic)
-        console.log('Read → service:', readChar?.service, 'char:', readChar?.characteristic)
-
-        return { writeChar, notifyChar, readChar }
-    }
     useEffect(() => {
         let updateListener: any;
+
         const getServices = async () => {
             try {
+                await BleManager.refreshCache(device.id);
+
                 const services = await BleManager.retrieveServices(device.id)
                 // console.log('Services retrieved', JSON.stringify(services, null, 2))
-                const { writeChar, notifyChar } = identifyCharacteristics(services)
-                setWriteChar(writeChar)
-                setNotifyChar(notifyChar)
 
-                debugger;
-                if (notifyChar) {
-                    await BleManager.startNotification(device.id, notifyChar.service, notifyChar.characteristic);
+                const writeChars = services.characteristics?.filter(
+                    (c: any) => c.properties.Write && !c.properties.Notify
+                ) || []
+
+                // ✅ Get ALL notify characteristics (not just first one)
+                const notifyChars = services.characteristics?.filter(
+                    (c: any) => c.properties.Notify
+                ) || []
+
+                // ✅ Get ALL read characteristics (not just first one)
+                const readChars = services.characteristics?.filter(
+                    (c: any) => c.properties.Read && !c.properties.Write
+                ) || []
+
+                console.log('All Write chars:', writeChars)
+                console.log('All Notify chars:', notifyChars)
+                console.log('All Read chars:', readChars)
+
+                // Store all of them
+                // setWriteChars(writeChars)
+                // setNotifyChars(notifyChars)
+                // setReadChars(readChars)
+
+                // if (notifyChars) {
+                //     const firstNotify = notifyChars[0]
+                    await BleManager.startNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935");
                     console.log('--- Subscribed to Notifications ---');
 
                     updateListener = bleManagerEmitter.addListener(
                         'BleManagerDidUpdateValueForCharacteristic',
                         ({ value, characteristic }) => {
-                            if (characteristic.toLowerCase() === notifyChar.characteristic.toLowerCase()) {
+                            if (characteristic.toLowerCase() === "83ab48e3-32c0-42cf-95fc-5c188f7b9935") {
                                 console.log('RAW RESPONSE FROM SENSOR (BYTES):', value);
                                 console.log('PARSED RESPONSE (AS TEXT):', String.fromCharCode(...value));
                             }
                         }
                     );
-                }   
+                // }
             } catch (err) {
                 console.error('Failed to retrieve services:', err)
             }
@@ -79,6 +70,13 @@ const DeviceDetails = () => {
         getServices()
         return () => {
             if (updateListener) updateListener.remove();
+            const firstNotify = notifyChars[0] 
+            // BleManager.stopNotification(device.id, firstNotify.service, firstNotify.characteristic)
+            //     .catch((err) => console.error('Stop notification error:', err))
+            BleManager.disconnect(device.id)
+                .then(() => console.log('Disconnected'))
+                .catch((err) => console.error('Disconnect error:', err))
+
         }
     }, [])
     const authenticate = async () => {
@@ -90,13 +88,12 @@ const DeviceDetails = () => {
             const hashBytes = Array.from(inputKey)
                 .map((c: string) => c.charCodeAt(0))
 
-            console.log(writeChar.service,
-                writeChar.characteristic,
+            console.log(
                 hashBytes)
             await BleManager.write(
                 device.id,
-                writeChar.service,
-                writeChar.characteristic,
+                "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
+                "83ab48e2-32c0-42cf-95fc-5c188f7b9935",
                 hashBytes
             )
             console.log('Hash key sent')
@@ -111,17 +108,6 @@ const DeviceDetails = () => {
             </Text>
 
             <View style={styles.card}>
-                {/* <Text >Rename Device</Text>
-                <TextInput
-                    style={styles.input}
-                    value={newName}
-                    onChangeText={setNewName}
-                    placeholder="Enter new device name"
-                    placeholderTextColor="#aaa"
-                /> */}
-                {/* <TouchableOpacity style={styles.saveButton} onPress={saveName}>
-                    <Text style={styles.saveButtonText}>Save Name</Text>
-                </TouchableOpacity> */}
                 <TextInput
                     style={styles.input}
                     value={inputKey}
