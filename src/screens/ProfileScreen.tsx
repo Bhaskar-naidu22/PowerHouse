@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
 
@@ -77,7 +76,7 @@ const ProfileScreen = () => {
   ];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor="#1D4ED8" />
 
       <ScrollView
@@ -176,7 +175,7 @@ const ProfileScreen = () => {
           );
         })}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

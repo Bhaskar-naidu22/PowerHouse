@@ -84,7 +84,7 @@ const BluetoothDevices = () => {
         setIsScanning(true)
 
         BleManager.scan({
-            serviceUUIDs: [],
+            serviceUUIDs: ["83ab48e1-32c0-42cf-95fc-5c188f7b9935"],
             seconds: 5,
             allowDuplicates: false,
             scanMode: 2,
@@ -121,7 +121,7 @@ const BluetoothDevices = () => {
                         setDevices(peripherals)
                     })
                     setIsScanning(false)
-                }, 11000)
+                }, 5500)
             })
             .catch((err: any) => {
                 console.error("Scan failed:", err)

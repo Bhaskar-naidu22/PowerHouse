@@ -1,5 +1,5 @@
 import Config from "react-native-config";
-import { StockProps } from "../components/StockCard";
+import { StockProps } from "../components/DeviceCard";
 import axios from "axios";
 
 // console.log("BASE_URL Check:", Config.BASE_URL);

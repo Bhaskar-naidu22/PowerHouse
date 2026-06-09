@@ -1,196 +1,363 @@
-import { Alert, DevMenu, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, NativeEventEmitter, NativeModules, Platform } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { useRoute } from '@react-navigation/native'
+import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, BackHandler, Alert } from 'react-native'
+import React, { useEffect, useRef } from 'react'
 import BleManager from 'react-native-ble-manager'
+import { useNavigation, useRoute } from '@react-navigation/native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { stringToBytes } from '../utils/blePayload'
 
-const BleManagerModule = NativeModules.BleManager;
-const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
+const SERVICE_UUID = "83ab48e1-32c0-42cf-95fc-5c188f7b9935";
+const HASH_WRITE_CHARACTERISTIC_UUID = "83ab48e2-32c0-42cf-95fc-5c188f7b9935";
+const NOTIFY_CHARACTERISTIC_UUID = "83ab48e3-32c0-42cf-95fc-5c188f7b9935";
+const WRITE_CHARACTERISTIC_UUID = "83ab48e4-32c0-42cf-95fc-5c188f7b9935";
+const FlatID = "101A"
+const buildingID = "PowerHouse"
 
 const DeviceDetails = () => {
     const route = useRoute<any>()
-    const { device } = route.params
-
-    const [writeChars, setWriteChars] = useState<any[]>([])
-    const [notifyChars, setNotifyChars] = useState<any[]>([])
-    const [readChars, setReadChars] = useState<any[]>([])
-    const [inputKey, setInputKey] = useState<string>('')
+    const navigation = useNavigation<any>()
+    const insets = useSafeAreaInsets()
+    const { item: device, sensorType } = route.params;
+    const responseResolverRef = useRef<((value: string) => void) | null>(null);
 
     useEffect(() => {
+        let disconnectListener: any;
+        let backHandler: any;
         let updateListener: any;
-
-        const getServices = async () => {
+        const setupDevice = async () => {
             try {
-                await BleManager.refreshCache(device.id);
+                disconnectListener = BleManager.onDisconnectPeripheral((data) => {
+                    console.log("Device disconnected: ", data.peripheral);
+                    navigation.goBack();
+                });
 
-                const services = await BleManager.retrieveServices(device.id)
-                // console.log('Services retrieved', JSON.stringify(services, null, 2))
-
-                const writeChars = services.characteristics?.filter(
-                    (c: any) => c.properties.Write && !c.properties.Notify
-                ) || []
-
-                // ✅ Get ALL notify characteristics (not just first one)
-                const notifyChars = services.characteristics?.filter(
-                    (c: any) => c.properties.Notify
-                ) || []
-
-                // ✅ Get ALL read characteristics (not just first one)
-                const readChars = services.characteristics?.filter(
-                    (c: any) => c.properties.Read && !c.properties.Write
-                ) || []
-
-                console.log('All Write chars:', writeChars)
-                console.log('All Notify chars:', notifyChars)
-                console.log('All Read chars:', readChars)
-
-                // Store all of them
-                // setWriteChars(writeChars)
-                // setNotifyChars(notifyChars)
-                // setReadChars(readChars)
-
-                await BleManager.startNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935");
-                console.log('--- Hardware Notification Channel Active ---');
-
-                updateListener = BleManager.onDidUpdateValueForCharacteristic((data: any) => {
-                    console.log("====================================");
-                    console.log("🚨 INCOMING PACKET DETECTED!");
-                    console.log("RAW DATA PACKET:", data);
-                    if (data.value) {
-                        console.log('PARSED AS TEXT:', String.fromCharCode(...data.value));
+                // Handle hardware back button on Android
+                backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+                    handleGoBack();
+                    return true; // prevents default back behavior
+                });
+                await BleManager.startNotification(device.id, SERVICE_UUID, NOTIFY_CHARACTERISTIC_UUID);
+                updateListener = BleManager.onDidUpdateValueForCharacteristic(((data: any) => {
+                    // Handle updated characteristic values
+                    const response = String.fromCharCode(...data.value);
+                    if (responseResolverRef.current) {
+                        responseResolverRef.current(response);
+                        responseResolverRef.current = null; // reset after handling
                     }
-                    console.log("====================================");
-                }
-                );
-                // }
-            } catch (err) {
-                console.error('Failed to retrieve services:', err)
+                }));
+            }
+            catch (err) {
+                console.error('Setup error:', err);
+                Alert.alert('Connection Error', 'Failed to connect to the device. Please try again.', [
+                    { text: 'OK', onPress: () => navigation.goBack() },
+                ]);
             }
         }
-        getServices()
+        setupDevice();
         return () => {
-            if (updateListener) updateListener.remove();
+            if (disconnectListener) {
+                disconnectListener.remove();
+            }
+            if (backHandler) {
+                backHandler.remove();
+            }
+            if (updateListener) {
+                updateListener.remove();
+            }
             (async () => {
-                try {
-                    await BleManager.stopNotification(device.id, "83ab48e1-32c0-42cf-95fc-5c188f7b9935", "83ab48e3-32c0-42cf-95fc-5c188f7b9935")
-                        .catch((err) => console.error('Stop notification error:', err))
-
-                    await BleManager.disconnect(device.id)
-                        .then(() => console.log('Disconnected'))
-                        .catch((err) => console.error('Disconnect error:', err))
-                } catch (error) {
-
-                }
+                await BleManager.stopNotification(device.id, SERVICE_UUID, NOTIFY_CHARACTERISTIC_UUID)
+                    .catch((err) => console.error('Stop notification error:', err))
+                await BleManager.disconnect(device.id)
+                    .catch((err) => console.warn("Disconnect error:", err))
             })();
+        };
+    }, []);
 
+    const waitForResponse = (timeoutMs: number = 5000): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            // ✅ Store resolve so the listener above can call it
+            responseResolverRef.current = resolve;
 
-        }
-    }, [])
-    const authenticate = async () => {
-        if (!inputKey.trim()) {
-            Alert.alert("Error", "Please type a hash key first");
+            // ✅ Timeout so it doesn't hang forever
+            setTimeout(() => {
+                if (responseResolverRef.current) {
+                    responseResolverRef.current = null;
+                    reject(new Error('Response timeout'));
+                }
+            }, timeoutMs);
+        });
+    };
+    const handleOnPressSave = async () => {
+        const hashKey = "6988"
+        await BleManager.write(
+            device.id,
+            SERVICE_UUID,
+            HASH_WRITE_CHARACTERISTIC_UUID,
+            stringToBytes(hashKey)
+        )
+        const response = await waitForResponse(5000)
+        if (response.trim() !== 'auth:1') {
+            Alert.alert('Authentication Failed', 'Device rejected the hash key. Please try again.');
             return;
         }
-        try {
-            const hashBytes = Array.from(inputKey)
-                .map((c: string) => c.charCodeAt(0))
+        await BleManager.write(
+            device.id,
+            SERVICE_UUID,
+            WRITE_CHARACTERISTIC_UUID,
+            stringToBytes(JSON.stringify({ sensorId: sensorType.id, flatId: FlatID, buildingId: buildingID }))
+        )
+    };
 
-            console.log(
-                hashBytes)
-            await BleManager.write(
-                device.id,
-                "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
-                "83ab48e2-32c0-42cf-95fc-5c188f7b9935",
-                hashBytes
-            )
-            console.log('Hash key sent')
+    const handleGoBack = () => {
+        BleManager.disconnect(device.id)
+            .catch((err) => console.warn("Disconnect error:", err))
+            .finally(() => navigation.goBack());
+    };
 
-            // await new Promise<void>(resolve => setTimeout(resolve, 1000))
-            // const response = await BleManager.read(
-            //     device.id,
-            //     "83ab48e1-32c0-42cf-95fc-5c188f7b9935",
-            //     "83ab48e3-32c0-42cf-95fc-5c188f7b9935"
-            // )
-            // const responseText = String.fromCharCode(...response)
-            // console.log('RAW RESPONSE (BYTES):', response)
-            // console.log('PARSED RESPONSE (TEXT):', responseText)
-        } catch (err) {
-            console.error('Failed to send hash key:', err)
-        }
-    }
     return (
-        <ScrollView>
-            <Text style={styles.value}>
-                {device.id}, {device.name}
-            </Text>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
 
-            <View style={styles.card}>
-                <TextInput
-                    style={styles.input}
-                    value={inputKey}
-                    onChangeText={setInputKey}
-                    placeholder="e.g. secret123 or A1B2C3"
-                    placeholderTextColor="#999"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                />
+            <View style={styles.header}>
+                <TouchableOpacity onPress={handleGoBack}>
+                    <Text style={styles.backArrow}>←</Text>
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Device Details</Text>
+                <View style={{ width: 22 }} />
+            </View>
+
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+
+                {/* Device Identity Card */}
+                <View style={styles.deviceCard}>
+                    <View style={styles.imageWrapper}>
+                        <Image
+                            source={sensorType.image}
+                            style={styles.sensorImage}
+                            resizeMode="contain"
+                        />
+                    </View>
+                    <View style={styles.statusBadge}>
+                        <View style={styles.statusDot} />
+                        <Text style={styles.statusText}>Connected</Text>
+                    </View>
+                    <Text style={styles.sensorName}>{sensorType.label} Sensor</Text>
+                    <View style={styles.macBadge}>
+                        <Text style={styles.macText}>ID: {device.id}</Text>
+                    </View>
+                </View>
+
+                {/* Flat Details Card */}
+                <View style={styles.sectionCard}>
+                    <Text style={styles.sectionTitle}>Flat Details</Text>
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Building</Text>
+                        <Text style={styles.detailValue}>PowerHouse Apartments</Text>
+                    </View>
+                    <View style={styles.divider} />
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Block</Text>
+                        <Text style={styles.detailValue}>A</Text>
+                    </View>
+                    <View style={styles.divider} />
+
+                    <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Flat Number</Text>
+                        <Text style={styles.detailValue}>101</Text>
+                    </View>
+                </View>
+
+            </ScrollView>
+
+            {/* Footer Button */}
+            <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
                 <TouchableOpacity
-                    style={styles.authButton}
-                    onPress={authenticate}
-                >
-                    <Text style={styles.authButtonText}>Authenticate with Hash Key</Text>
+                    style={styles.saveButton}
+                    activeOpacity={0.85}
+                    onPress={handleOnPressSave}>
+                    <Text style={styles.saveButtonText}>Save & Configure Sensor</Text>
                 </TouchableOpacity>
             </View>
-        </ScrollView>
+
+        </View>
     )
 }
 
 export default DeviceDetails
 
 const styles = StyleSheet.create({
-    authButton: {
-        backgroundColor: '#FF9500',
-        padding: 14,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    authButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 16,
-    },
-    value: {
+    container: {
         flex: 1,
-        marginLeft: 2
+        backgroundColor: '#F0F2F8',
+        marginTop: 10,
     },
-    card: {
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 8,
+
+    // Header
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         marginBottom: 10,
+    },
+    backArrow: {
+        fontSize: 22,
+        color: '#3B5BDB',
+        fontWeight: '600',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#3B5BDB',
+    },
+
+    // Scroll
+    scrollContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 24,
+        gap: 16,
+    },
+
+    // Device identity card
+    deviceCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        paddingVertical: 28,
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1.41,
-        elevation: 2,
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
     },
-    input: {
-        borderWidth: 1,
-        borderColor: '#ddd',
-        borderRadius: 6,
-        padding: 10,
-        fontSize: 15,
-        color: '#333',
+    imageWrapper: {
+        width: 100,
+        height: 100,
+        backgroundColor: '#EEF2FF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    sensorImage: {
+        width: 100,
+        height: 100,
+    },
+    connectedLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#22C55E',
+        letterSpacing: 1,
+        marginBottom: 6,
+        textTransform: 'uppercase',
+    },
+    sensorName: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#111827',
         marginBottom: 10,
     },
-    saveButton: {
-        backgroundColor: '#007AFF',
-        padding: 10,
-        borderRadius: 6,
+    macBadge: {
+        backgroundColor: '#F3F4F6',
+        borderRadius: 20,
+        paddingVertical: 5,
+        paddingHorizontal: 14,
+    },
+    macText: {
+        fontSize: 12,
+        color: '#6B7280',
+        fontWeight: '500',
+        letterSpacing: 0.5,
+    },
+
+    // Section cards
+    sectionCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 4,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#9CA3AF',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
+        paddingVertical: 12,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        paddingVertical: 13,
+    },
+    detailLabel: {
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    detailValue: {
+        fontSize: 14,
+        color: '#111827',
+        fontWeight: '600',
+        maxWidth: '55%',
+        textAlign: 'right',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#F3F4F6',
+    },
+
+    // Status badge
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: '#DCFCE7',
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 20,
+        marginBottom: 12,
+    },
+    statusDot: {
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+        backgroundColor: '#22C55E',
+    },
+    statusText: {
+        fontSize: 15,
+        color: '#16A34A',
+        fontWeight: '600',
+    },
+
+    // Footer
+    footer: {
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        backgroundColor: '#F0F2F8',
+    },
+    saveButton: {
+        backgroundColor: '#3B5BDB',
+        borderRadius: 30,
+        paddingVertical: 16,
+        alignItems: 'center',
+        elevation: 2,
+        shadowColor: '#3B5BDB',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
     },
     saveButtonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 14,
-    }
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 0.3,
+    },
 })
