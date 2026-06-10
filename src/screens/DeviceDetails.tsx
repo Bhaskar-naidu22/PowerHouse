@@ -3,14 +3,15 @@ import React, { useEffect, useRef } from 'react'
 import BleManager from 'react-native-ble-manager'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { stringToBytes } from '../utils/blePayload'
+import { JSONtoBytes, stringToBytes } from '../utils/blePayload'
 
 const SERVICE_UUID = "83ab48e1-32c0-42cf-95fc-5c188f7b9935";
 const HASH_WRITE_CHARACTERISTIC_UUID = "83ab48e2-32c0-42cf-95fc-5c188f7b9935";
 const NOTIFY_CHARACTERISTIC_UUID = "83ab48e3-32c0-42cf-95fc-5c188f7b9935";
 const WRITE_CHARACTERISTIC_UUID = "83ab48e4-32c0-42cf-95fc-5c188f7b9935";
-const FlatID = "101A"
-const buildingID = "PowerHouse"
+const SENSORID = "550e8400-e29b-41d4-a716-446655440000"
+const FlatID = "550e8400-e29b-41d4-a716-446655440001"
+const buildingID = "550e8400-e29b-41d4-a716-446655440002"
 
 const DeviceDetails = () => {
     const route = useRoute<any>()
@@ -29,7 +30,13 @@ const DeviceDetails = () => {
                     console.log("Device disconnected: ", data.peripheral);
                     navigation.goBack();
                 });
-
+                BleManager.retrieveServices(device.id)
+                    .catch((err) => {
+                        console.error('Service retrieval error:', err);
+                        Alert.alert('Error', 'Failed to retrieve device services. Please try again.', [
+                            { text: 'OK', onPress: () => navigation.goBack() },
+                        ]);
+                    })
                 // Handle hardware back button on Android
                 backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
                     handleGoBack();
@@ -95,16 +102,24 @@ const DeviceDetails = () => {
             stringToBytes(hashKey)
         )
         const response = await waitForResponse(5000)
-        if (response.trim() !== 'auth:1') {
+        if (response.trim() !== `{"auth":1}`) {
             Alert.alert('Authentication Failed', 'Device rejected the hash key. Please try again.');
             return;
         }
+        const payload = JSON.stringify({ sensorId: SENSORID, flatId: FlatID, buildingId: buildingID })
+        console.log("Payload to send: ", payload)
         await BleManager.write(
             device.id,
             SERVICE_UUID,
             WRITE_CHARACTERISTIC_UUID,
-            stringToBytes(JSON.stringify({ sensorId: sensorType.id, flatId: FlatID, buildingId: buildingID }))
+            JSONtoBytes({ sensorId: SENSORID, flatId: FlatID, buildingId: buildingID })
         )
+        const response2 = await waitForResponse(5000)
+        debugger
+        if (response2.trim() !== `{"config":1}`) {
+            Alert.alert('Configuration Failed', 'Device rejected the configuration data. Please try again.');
+            return;
+        }
     };
 
     const handleGoBack = () => {

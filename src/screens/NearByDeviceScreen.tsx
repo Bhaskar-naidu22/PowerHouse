@@ -77,7 +77,7 @@ const NearByDeviceScreen = () => {
         console.log("scanning started")
 
         await BleManager.scan({
-            serviceUUIDs: [],
+            serviceUUIDs: ["83ab48e1-32c0-42cf-95fc-5c188f7b9935"],
             seconds: 5,
             allowDuplicates: false,
         })
