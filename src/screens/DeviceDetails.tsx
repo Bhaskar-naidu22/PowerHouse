@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react'
 import BleManager from 'react-native-ble-manager'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { JSONtoBytes, stringToBytes } from '../utils/blePayload'
+import { stringToBytes } from '../utils/blePayload'
 
 const SERVICE_UUID = "83ab48e1-32c0-42cf-95fc-5c188f7b9935";
 const HASH_WRITE_CHARACTERISTIC_UUID = "83ab48e2-32c0-42cf-95fc-5c188f7b9935";
@@ -112,7 +112,7 @@ const DeviceDetails = () => {
             device.id,
             SERVICE_UUID,
             WRITE_CHARACTERISTIC_UUID,
-            JSONtoBytes({ sensorId: SENSORID, flatId: FlatID, buildingId: buildingID })
+            stringToBytes(payload)
         )
         const response2 = await waitForResponse(5000)
         debugger
