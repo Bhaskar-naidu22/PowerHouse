@@ -7,6 +7,8 @@ import ProfileScreen from './src/screens/ProfileScreen'
 import SensorTypeScreen from './src/screens/SensorTypeScreen'
 import NearByDeviceScreen from './src/screens/NearByDeviceScreen'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
+import LoginScreen from './src/screens/LoginScreen'
+import PropertySelectionScreen from './src/screens/PropertySelectionScreen'
 
 const Stack = createNativeStackNavigator()
 
@@ -16,6 +18,10 @@ const App = () => {
     <SafeAreaProvider>
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {/* <Stack.Screen name='LoginScreen'
+            component={LoginScreen} />
+            <Stack.Screen name='PropertySelectionScreen'
+            component={PropertySelectionScreen} /> */}
           <Stack.Screen name='Sensor Type'
             component={SensorTypeScreen} />
           <Stack.Screen

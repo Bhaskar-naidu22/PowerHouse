@@ -1,5 +1,5 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, BackHandler, Alert } from 'react-native'
-import React, { useEffect, useRef } from 'react'
+import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, BackHandler, Alert, TextInput } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
 import BleManager from 'react-native-ble-manager'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -19,6 +19,8 @@ const DeviceDetails = () => {
     const insets = useSafeAreaInsets()
     const { item: device, sensorType } = route.params;
     const responseResolverRef = useRef<((value: string) => void) | null>(null);
+    const [ID, setID] = useState<string>("Bhaskar")
+    const [password, setPassword] = useState<string>("Password123")
 
     useEffect(() => {
         let disconnectListener: any;
@@ -106,7 +108,8 @@ const DeviceDetails = () => {
             Alert.alert('Authentication Failed', 'Device rejected the hash key. Please try again.');
             return;
         }
-        const payload = JSON.stringify({ sensorId: SENSORID, flatId: FlatID, buildingId: buildingID })
+        // const payload = JSON.stringify({ sensorId: SENSORID, flatId: FlatID, buildingId: buildingID })
+        const payload = JSON.stringify({ Id: ID, password: password })
         console.log("Payload to send: ", payload)
         await BleManager.write(
             device.id,
@@ -114,12 +117,11 @@ const DeviceDetails = () => {
             WRITE_CHARACTERISTIC_UUID,
             stringToBytes(payload)
         )
-        const response2 = await waitForResponse(5000)
-        debugger
-        if (response2.trim() !== `{"config":1}`) {
-            Alert.alert('Configuration Failed', 'Device rejected the configuration data. Please try again.');
-            return;
-        }
+        // const response2 = await waitForResponse(5000)
+        // if (response2.trim() !== `{"config":1}`) {
+        //     Alert.alert('Configuration Failed', 'Device rejected the configuration data. Please try again.');
+        //     return;
+        // }
     };
 
     const handleGoBack = () => {
@@ -161,7 +163,7 @@ const DeviceDetails = () => {
                 </View>
 
                 {/* Flat Details Card */}
-                <View style={styles.sectionCard}>
+                {/* <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Flat Details</Text>
 
                     <View style={styles.detailRow}>
@@ -180,6 +182,13 @@ const DeviceDetails = () => {
                         <Text style={styles.detailLabel}>Flat Number</Text>
                         <Text style={styles.detailValue}>101</Text>
                     </View>
+                </View> */}
+
+                <View style={styles.sectionCard}>
+                    <Text style={styles.sectionTitle}>ID</Text>
+                    <TextInput value={ID} onChangeText={(text: string) => setID(text)} placeholder='Enter ID' style={{ borderBottomWidth: 1, borderColor: '#E5E7EB', paddingVertical: 8, marginBottom: 12 }} />
+                    <Text style={styles.sectionTitle}>Password</Text>
+                    <TextInput value={password} onChangeText={(text: string) => setPassword(text)} placeholder='Enter Password' style={{ borderBottomWidth: 1, borderColor: '#E5E7EB', paddingVertical: 8, marginBottom: 12 }} />
                 </View>
 
             </ScrollView>
