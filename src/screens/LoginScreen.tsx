@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react'
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, KeyboardAvoidingView, Platform,
-    ScrollView, ActivityIndicator
+    StyleSheet, ScrollView, ActivityIndicator
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -43,7 +42,7 @@ const LoginScreen = () => {
         setTimeout(() => {
             setLoading(false)
             setStep('otp')
-        }, 1200)
+        })
     }
 
     // ── Step 2: Verify OTP ────────────────────────────────
@@ -53,14 +52,14 @@ const LoginScreen = () => {
             setError('Enter the 4-digit OTP')
             return
         }
-        navigation.navigate('PropertySelectionScreen')
-        // setError('')
-        // setLoading(true)
-        // // TODO: Replace with real API call
-        // setTimeout(() => {
-        //     setLoading(false)
-        //     navigation.navigate('PropertySelectionScreen')
-        // }, 1200)
+        // navigation.navigate('PropertySelectionScreen')
+        setError('')
+        setLoading(true)
+        // TODO: Replace with real API call
+        setTimeout(() => {
+            setLoading(false)
+            navigation.replace('MainTabs')
+        })
     }
 
     const handleOtpChange = (value: string, index: number) => {
@@ -85,9 +84,8 @@ const LoginScreen = () => {
     }
 
     return (
-        <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+            style={{ flex: 1 }}>
             <View
                 style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
 
@@ -104,7 +102,7 @@ const LoginScreen = () => {
                 <View style={styles.card}>
                     {step === 'input' ? (
                         <>
-                            <Text style={styles.cardTitle}>Welcome Back</Text>
+                            <Text style={styles.cardTitle}>Welcome</Text>
                             <Text style={styles.cardSubtitle}>
                                 Enter your email or mobile number to receive an OTP
                             </Text>
@@ -115,14 +113,14 @@ const LoginScreen = () => {
                                     {isEmail ? '✉' : '📱'}
                                 </Text>
                                 <TextInput
+                                    testID='contact-input'
                                     style={styles.input}
-                                    placeholder="email@example.com or 9876543210"
-                                    placeholderTextColor="#9CA3AF"
                                     value={contact}
                                     onChangeText={(t) => { setContact(t); setError('') }}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoCorrect={false}
+                                    placeholder='Enter Email/Mobile Number'
                                 />
                             </View>
 
@@ -135,7 +133,7 @@ const LoginScreen = () => {
                                 disabled={!isValid || loading}>
                                 {loading
                                     ? <ActivityIndicator color="#fff" />
-                                    : <Text style={styles.primaryButtonText}>Send OTP →</Text>}
+                                    : <Text style={styles.primaryButtonText}>Send OTP</Text>}
                             </TouchableOpacity>
                         </>
                     ) : (
@@ -150,6 +148,7 @@ const LoginScreen = () => {
                             <View style={styles.otpRow}>
                                 {otp.map((digit, index) => (
                                     <TextInput
+                                        testID={`otp-${index}`}
                                         key={index}
                                         ref={otpRefs[index]}
                                         style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
@@ -188,11 +187,11 @@ const LoginScreen = () => {
                 </View>
 
                 <Text style={styles.footerNote}>
-                    By continuing, you agree to FieldLink's Terms of Service
+                    By continuing, you agree to FieldLink's Terms & Condition's.
                 </Text>
 
             </View>
-        </KeyboardAvoidingView>
+        </ScrollView>
     )
 }
 

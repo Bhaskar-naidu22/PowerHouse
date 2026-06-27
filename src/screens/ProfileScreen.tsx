@@ -6,78 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  StatusBar,
 } from 'react-native';
+import { ContactRow } from '../components/ContactRowCard';
+import { useNavigation } from '@react-navigation/native';
+import { StatCard } from '../components/StatCard';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ── Icons (replace with react-native-vector-icons if available) ──────────────
-const Icon = ({ name, size = 18, color = '#2563EB' }: { name: string; size?: number; color?: string }) => {
-  const icons: Record<string, string> = {
-    email: '✉',
-    phone: '📱',
-    location: '📍',
-    calendar: '📅',
-    home: '⊞',
-    flats: '⊟',
-    sensors: '◎',
-    profile: '👤',
-    edit: '✎',
-    building: '⊞',
-    wifi: '◎',
-    calendarStat: '▦',
-  };
-  return (
-    <Text style={{ fontSize: size, color }}>{icons[name] ?? '•'}</Text>
-  );
-};
-
-// ── Types ────────────────────────────────────────────────────────────────────
-interface ContactRowProps {
-  icon: string;
-  label: string;
-  value: string;
-}
-
-interface StatCardProps {
-  icon: string;
-  value: string | number;
-  label: string;
-}
-
-// ── Sub-components ───────────────────────────────────────────────────────────
-const StatCard = ({ icon, value, label }: StatCardProps) => (
-  <View style={styles.statCard}>
-    <Icon name={icon} size={22} color="#2563EB" />
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
-const ContactRow = ({ icon, label, value }: ContactRowProps) => (
-  <View style={styles.contactRow}>
-    <View style={styles.contactIconWrap}>
-      <Icon name={icon} size={16} color="#2563EB" />
-    </View>
-    <View>
-      <Text style={styles.contactLabel}>{label}</Text>
-      <Text style={styles.contactValue}>{value}</Text>
-    </View>
-  </View>
-);
-
-// ── Main Screen ──────────────────────────────────────────────────────────────
 const ProfileScreen = () => {
-  const activeTab = 'Profile';
+  const navigation = useNavigation<any>()
 
-  const tabs = [
-    { name: 'Home', icon: 'home' },
-    { name: 'Flats', icon: 'flats' },
-    { name: 'Sensors', icon: 'sensors' },
-    { name: 'Profile', icon: 'profile' },
-  ];
+  const handleSignOut = () => {
+    navigation.replace("LoginScreen")
+  }
 
   return (
-    <View style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor="#1D4ED8" />
+    <SafeAreaView style={styles.safe}>
 
       <ScrollView
         style={styles.scroll}
@@ -85,7 +28,7 @@ const ProfileScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* ── Header ── */}
-        <View style={styles.header}>
+        {/* <View style={styles.header}> */}
           <View style={styles.avatarWrap}>
             {/* Replace uri with actual image source */}
             <Image
@@ -96,12 +39,12 @@ const ProfileScreen = () => {
               <Text style={styles.editBadgeIcon}>✎</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        {/* </View> */}
 
         {/* ── Identity ── */}
         <View style={styles.identityBlock}>
-          <Text style={styles.name}>Alex Thompson</Text>
-          <Text style={styles.employeeId}>Employee ID: EP-99284</Text>
+          <Text style={styles.name}>Lokesh Kota</Text>
+          <Text style={styles.employeeId}>Employee ID: ASSPPL-12345</Text>
           <View style={styles.rolePill}>
             <Text style={styles.roleText}>Field Electrician</Text>
           </View>
@@ -109,73 +52,50 @@ const ProfileScreen = () => {
 
         {/* ── Stats ── */}
         <View style={styles.statsRow}>
-          <StatCard icon="building" value={124} label="Flats" />
+          <StatCard icon="building" value={124} label="Flats" color="#2563EB" />
           <View style={styles.statDivider} />
-          <StatCard icon="sensors" value={432} label="Sensors" />
+          <StatCard icon="sensors" value={432} label="Sensors" color="#2563EB" />
           <View style={styles.statDivider} />
-          <StatCard icon="calendarStat" value={582} label="Days" />
+          <StatCard icon="calendarStat" value={582} label="Days" color="#2563EB" />
         </View>
 
-        {/* ── Contact Information ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>CONTACT INFORMATION</Text>
 
           <ContactRow
             icon="email"
             label="Email"
-            value="a.thompson@electropro.com"
+            value="info@asspl.com"
           />
           <ContactRow
             icon="phone"
             label="Mobile"
-            value="+1 (555) 024-9182"
+            value="+91 9876543210"
           />
           <ContactRow
             icon="location"
             label="Zone"
-            value="Metropolis North - Sector 7"
+            value="E-City"
           />
           <ContactRow
             icon="calendar"
             label="Join Date"
-            value="March 12, 2022"
+            value="March 12, 2026"
           />
         </View>
 
         {/* ── Edit Profile Button ── */}
-        <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
+        {/* <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
           <Text style={styles.editBtnText}>Edit Profile</Text>
+        </TouchableOpacity> */}
+        <TouchableOpacity style={styles.signOutBtn} activeOpacity={0.85} onPress={handleSignOut}>
+          <Text style={styles.signOutBtnText}>Sign Out</Text>
         </TouchableOpacity>
 
         <View style={{ height: 16 }} />
       </ScrollView>
 
-      {/* ── Bottom Tab Bar ── */}
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => {
-          const isActive = tab.name === activeTab;
-          return (
-            <TouchableOpacity
-              key={tab.name}
-              style={styles.tabItem}
-              activeOpacity={0.7}
-            >
-              {isActive ? (
-                <View style={styles.activeTabPill}>
-                  <Icon name={tab.icon} size={18} color="#fff" />
-                  <Text style={styles.activeTabLabel}>{tab.name}</Text>
-                </View>
-              ) : (
-                <>
-                  <Icon name={tab.icon} size={20} color="#9CA3AF" />
-                  <Text style={styles.inactiveTabLabel}>{tab.name}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -184,6 +104,7 @@ export default ProfileScreen;
 // ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safe: {
+    marginTop: -23,
     flex: 1,
     backgroundColor: '#F1F5F9',
   },
@@ -191,37 +112,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 24,
+    paddingBottom: 10,
   },
 
   // Header
   header: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#32dafbe3',
     height: 100,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingBottom: 0,
+    paddingBottom: 0
   },
   avatarWrap: {
     position: 'relative',
-    marginBottom: -36,
-    zIndex: 10,
+    alignItems: 'center',
+    marginTop: 75,
+    zIndex: 100,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 3,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 1,
     borderColor: '#fff',
     backgroundColor: '#CBD5E1',
   },
   editBadge: {
     position: 'absolute',
     bottom: 2,
-    right: 2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    right:150,
+    width: 30,
+    height: 30,
+    borderRadius: 20,
     backgroundColor: '#2563EB',
     alignItems: 'center',
     justifyContent: 'center',
@@ -230,13 +152,13 @@ const styles = StyleSheet.create({
   },
   editBadgeIcon: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 15,
   },
 
   // Identity
   identityBlock: {
     alignItems: 'center',
-    marginTop: 44,
+    marginTop: 24,
     paddingHorizontal: 24,
     backgroundColor: '#F1F5F9',
     paddingBottom: 8,
@@ -279,22 +201,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
   },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
   statDivider: {
     width: 1,
     backgroundColor: '#E2E8F0',
@@ -323,33 +229,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1,
     marginBottom: 12,
   },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 14,
-  },
-  contactIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  contactLabel: {
-    fontSize: 11,
-    color: '#94A3B8',
-    fontWeight: '500',
-    marginBottom: 2,
-  },
-  contactValue: {
-    fontSize: 14,
-    color: '#1E293B',
-    fontWeight: '500',
-  },
+
 
   // Edit Button
   editBtn: {
@@ -364,6 +244,21 @@ const styles = StyleSheet.create({
   },
   editBtnText: {
     color: '#2563EB',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  signOutBtn: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderWidth: 1.5,
+    borderColor: '#f82929',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#f51717',
+  },
+  signOutBtnText: {
+    color: '#fcfafa',
     fontSize: 15,
     fontWeight: '600',
   },

@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react'
 import { SensorTypeOption } from '../types';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import SensorTypeCard from '../components/SensorTypeCard';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SENSOR_OPTIONS: SensorTypeOption[] = [
   { id: 'asspl-001', label: 'IR', image: require('../assets/images/IR.png'), count: 5 },
@@ -29,7 +29,7 @@ const SensorTypeScreen = () => {
     navigation.navigate("NearByScreen", { sensorType: selected })
   }
   return (
-    <View style={[styles.container, { paddingTop: useSafeAreaInsets().top }]}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backArrow}>←</Text>
@@ -70,7 +70,7 @@ const SensorTypeScreen = () => {
           <Text style={styles.continueText}>Continue</Text>
         </TouchableOpacity>
       </View>
-    </View >
+    </SafeAreaView >
   )
 }
 

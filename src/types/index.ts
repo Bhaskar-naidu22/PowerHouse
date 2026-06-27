@@ -13,3 +13,23 @@ export interface Device {
   mac: string;
 }
 
+export interface ActivityItem {
+    id: string;
+    building: string;
+    details: string;
+    time: string;
+    status: 'Completed' | 'Pending';
+}
+export type Building = {
+    id: string;
+    name: string;
+    description: string;
+    maintenance: string;
+    accessLevel: string;
+}
+
+export type Flat = {
+    id: string;
+    buildingId: string;
+    unit: string;
+}

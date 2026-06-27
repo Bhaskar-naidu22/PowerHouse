@@ -1,9 +1,9 @@
 import { FlatList, PermissionsAndroid, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import BleManager from 'react-native-ble-manager'
-import { useNavigation, useRoute } from '@react-navigation/native'
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native'
 import ScanningPulse from '../components/ScanningPulse'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import DeviceCard from '../components/DeviceCard'
 
 const NearByDeviceScreen = () => {
@@ -11,22 +11,36 @@ const NearByDeviceScreen = () => {
     const { sensorType } = route.params
     const navigation = useNavigation<any>()
     const [scanning, setScanning] = useState<boolean>(true)
-    const [devices, setDevices] = useState<any[] | null>(null)
+    const [devices, setDevices] = useState<any[]>([])
 
 
     useEffect(() => {
-        BleManager.start()
-        requestPermissions();
+        BleManager.start();
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            requestPermissions().then((granted) => {
+                if (granted) {
+                    startScanning();
+                }
+            });
+
+            return () => {
+                BleManager.stopScan();
+            };
+        }, [])
+    );
+
+    useEffect(() => {
         const discoverListener = BleManager.onDiscoverPeripheral((device: any) => {
-            if (device.name ) {
+            if (device.name) {
                 setDevices((prevDevices) => {
-                    // Check if we already added this device to the list to prevent duplicates
+
                     const exists = prevDevices?.some(d => d.id === device.id);
-                    if (!exists) {
-                        // console.log("Device Found: ", device)
-                        return [...(prevDevices ?? []), device];
-                    }
-                    return prevDevices;
+                    if (exists) return prevDevices;
+
+                    return [...prevDevices, device];
                 });
             }
         })
@@ -41,34 +55,30 @@ const NearByDeviceScreen = () => {
         }
     }, []);
 
-    const handleBluetoothScan = () => {
-        if (!scanning) {
-            setScanning(true);
-            requestPermissions()
-        }
-    }
+    const handleBluetoothScan = async () => {
+        if (scanning) return;
 
-    const requestPermissions = async () => {
+        if (await requestPermissions()) {
+            startScanning();
+        }
+    };
+
+    const requestPermissions = async (): Promise<boolean> => {
         try {
             await PermissionsAndroid.requestMultiple([
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
                 PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
-            ])
-            console.log('Permissions requested')
-        } catch (e) {
-            console.warn('Permission error:', e)
-        }
+            ]);
 
-        try {
-            await BleManager.enableBluetooth()
-        } catch (e) {
-            console.warn(e)
-            return
-        }
+            await BleManager.enableBluetooth();
 
-        startScanning()
-    }
+            return true;
+        } catch (error) {
+            console.warn(error);
+            return false;
+        }
+    };
 
     const startScanning = async () => {
 
@@ -78,13 +88,26 @@ const NearByDeviceScreen = () => {
 
         await BleManager.scan({
             serviceUUIDs: ["83ab48e1-32c0-42cf-95fc-5c188f7b9935"],
-            seconds: 5,
+            seconds: 8,
             allowDuplicates: false,
         })
-
     }
+
+    const handleConnect = async (device: any) => {
+        try {
+            await BleManager.connect(device.id);
+
+            await BleManager.stopScan();
+            navigation.navigate("DeviceDetails", {
+                device,
+                sensorType,
+            });
+        } catch (error) {
+            console.log(error);
+        }
+    };
     return (
-        <View style={[styles.container, { paddingTop: useSafeAreaInsets().top }]}>
+        <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                     <Text style={styles.backArrow}>←</Text>
@@ -95,7 +118,7 @@ const NearByDeviceScreen = () => {
             </View>
 
             <TouchableOpacity style={styles.scanSection} onPress={handleBluetoothScan}>
-                <ScanningPulse scanning={scanning} onRescan={requestPermissions} />
+                <ScanningPulse scanning={scanning} onRescan={handleBluetoothScan} />
 
             </TouchableOpacity>
 
@@ -115,18 +138,13 @@ const NearByDeviceScreen = () => {
                     </Text>
                 )}
                 renderItem={({ item }) => (
-                    <DeviceCard device={item} sensortype={sensorType} onConnect={async (id) => {
-                        try {
-                            await BleManager.connect(id);
-                            console.log("Connected to device with id: ", id);
-                            navigation.navigate("DeviceDetails", { item, sensorType })
-                        } catch (error) {
-                            console.log("Connection error", error);
-                        }
-                    }} />
-
-                )} />
-        </View>
+                    <DeviceCard
+                        device={item}
+                        sensortype={sensorType}
+                        onConnect={() => handleConnect(item)} />
+                )}
+            />
+        </SafeAreaView>
     )
 }
 
@@ -145,9 +163,10 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
     },
     backArrow: {
-        fontSize: 22,
+        fontSize: 28,
         color: '#3B5BDB',
         fontWeight: '600',
+        paddingBottom: 12
     },
     headerTitle: {
         fontSize: 18,

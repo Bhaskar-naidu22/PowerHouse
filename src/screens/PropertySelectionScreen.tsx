@@ -1,26 +1,14 @@
 import React, { useState } from 'react'
 import {
     View, Text, TouchableOpacity, StyleSheet,
-    ScrollView, TextInput, FlatList, Modal
+    ScrollView, TextInput, FlatList, Modal,
+    Button
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
-// ── Mock Data ─────────────────────────────────────────────
-
-type Building = {
-    id: string;
-    name: string;
-    description: string;
-    maintenance: string;
-    accessLevel: string;
-}
-
-type Flat = {
-    id: string;
-    buildingId: string;
-    unit: string;
-}
+import Dropdown from '../components/DropDown'
+import { Building, Flat } from '../types'
+import { useSession } from '../contexts/SessionContexts'
 
 const BUILDINGS: Building[] = [
     { id: 'b1', name: 'Sky Towers', description: 'Sky Towers features a high-density 3-phase electrical backbone. Ensure all sensors are calibrated for industrial-grade interference protection.', maintenance: 'Weekly', accessLevel: 'Standard' },
@@ -37,28 +25,6 @@ const FLATS: Flat[] = [
     { id: 'f6', buildingId: 'b3', unit: 'GV-01' },
 ]
 
-// ── Dropdown Component ────────────────────────────────────
-
-type DropdownProps = {
-    placeholder: string;
-    value: string;
-    onPress: () => void;
-    disabled?: boolean;
-}
-
-const Dropdown = ({ placeholder, value, onPress, disabled }: DropdownProps) => (
-    <TouchableOpacity
-        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
-        onPress={onPress}
-        activeOpacity={0.8}
-        disabled={disabled}>
-        <Text style={styles.dropdownSearchIcon}>🔍</Text>
-        <Text style={[styles.dropdownText, !value && styles.dropdownPlaceholder]}>
-            {value || placeholder}
-        </Text>
-        <Text style={styles.dropdownChevron}>⌄</Text>
-    </TouchableOpacity>
-)
 
 // ── Modal Picker ──────────────────────────────────────────
 
@@ -118,7 +84,7 @@ function PickerModal<T>({ visible, title, data, searchQuery, onSearch, onSelect,
 const PropertySelectionScreen = () => {
     const navigation = useNavigation<any>()
     const insets = useSafeAreaInsets()
-
+    const { setFlatDetails } = useSession()
     const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null)
     const [selectedFlat, setSelectedFlat] = useState<Flat | null>(null)
 
@@ -152,6 +118,12 @@ const PropertySelectionScreen = () => {
 
     const handleContinue = () => {
         if (!selectedBuilding || !selectedFlat) return
+        setFlatDetails({
+            FlatName: selectedFlat.unit,
+            FlatId: selectedFlat.id,
+            buildingName: selectedBuilding.name,
+            buildingId: selectedBuilding.id,
+        });
         navigation.navigate('Sensor Type', {
             building: selectedBuilding,
             flat: selectedFlat,
@@ -162,7 +134,7 @@ const PropertySelectionScreen = () => {
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-
+            {/* <Button title='Try!' onPress={() => { Sentry.captureException(new Error('First error')) }} /> */}
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -228,6 +200,7 @@ const PropertySelectionScreen = () => {
             </ScrollView>
 
             {/* Footer */}
+
             <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
                 <TouchableOpacity
                     style={[styles.continueButton, !canContinue && styles.continueDisabled]}
@@ -235,7 +208,6 @@ const PropertySelectionScreen = () => {
                     onPress={handleContinue}
                     disabled={!canContinue}>
                     <Text style={styles.continueText}>Continue</Text>
-                    <Text style={styles.continueArrow}>›</Text>
                 </TouchableOpacity>
             </View>
 
@@ -323,41 +295,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#374151',
         marginBottom: 8,
-    },
-
-    // Dropdown
-    dropdown: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F9FAFB',
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
-        paddingHorizontal: 14,
-        height: 52,
-    },
-    dropdownDisabled: {
-        opacity: 0.4,
-    },
-    dropdownSearchIcon: {
-        fontSize: 14,
-        marginRight: 8,
-        color: '#9CA3AF',
-    },
-    dropdownText: {
-        flex: 1,
-        fontSize: 14,
-        color: '#111827',
-        fontWeight: '500',
-    },
-    dropdownPlaceholder: {
-        color: '#9CA3AF',
-        fontWeight: '400',
-    },
-    dropdownChevron: {
-        fontSize: 18,
-        color: '#6B7280',
-        marginLeft: 8,
     },
 
     // Info card
@@ -458,12 +395,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '700',
         letterSpacing: 0.3,
-    },
-    continueArrow: {
-        color: '#FFFFFF',
-        fontSize: 20,
-        fontWeight: '700',
-        lineHeight: 22,
     },
 
     // Modal

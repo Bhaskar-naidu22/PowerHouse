@@ -1,137 +1,245 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, BackHandler, Alert, TextInput } from 'react-native'
+import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, BackHandler, Alert } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import BleManager from 'react-native-ble-manager'
 import { useNavigation, useRoute } from '@react-navigation/native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { stringToBytes } from '../utils/blePayload'
+import { useSession } from '../contexts/SessionContexts'
+import uuid from 'react-native-uuid'
 
 const SERVICE_UUID = "83ab48e1-32c0-42cf-95fc-5c188f7b9935";
 const HASH_WRITE_CHARACTERISTIC_UUID = "83ab48e2-32c0-42cf-95fc-5c188f7b9935";
 const NOTIFY_CHARACTERISTIC_UUID = "83ab48e3-32c0-42cf-95fc-5c188f7b9935";
 const WRITE_CHARACTERISTIC_UUID = "83ab48e4-32c0-42cf-95fc-5c188f7b9935";
-const SENSORID = "550e8400-e29b-41d4-a716-446655440000"
-const FlatID = "550e8400-e29b-41d4-a716-446655440001"
-const buildingID = "550e8400-e29b-41d4-a716-446655440002"
 
 const DeviceDetails = () => {
     const route = useRoute<any>()
     const navigation = useNavigation<any>()
-    const insets = useSafeAreaInsets()
-    const { item: device, sensorType } = route.params;
+    const { device, sensorType } = route.params;
     const responseResolverRef = useRef<((value: string) => void) | null>(null);
-    const [ID, setID] = useState<string>("Bhaskar")
-    const [password, setPassword] = useState<string>("Password123")
+    const mountedRef = useRef(true);
+    const isLeavingRef = useRef(false);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         let disconnectListener: any;
-        let backHandler: any;
         let updateListener: any;
+        let backHandler: any;
+
         const setupDevice = async () => {
             try {
-                disconnectListener = BleManager.onDisconnectPeripheral((data) => {
-                    console.log("Device disconnected: ", data.peripheral);
-                    navigation.goBack();
-                });
-                BleManager.retrieveServices(device.id)
-                    .catch((err) => {
-                        console.error('Service retrieval error:', err);
-                        Alert.alert('Error', 'Failed to retrieve device services. Please try again.', [
-                            { text: 'OK', onPress: () => navigation.goBack() },
-                        ]);
-                    })
-                // Handle hardware back button on Android
-                backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-                    handleGoBack();
-                    return true; // prevents default back behavior
-                });
-                await BleManager.startNotification(device.id, SERVICE_UUID, NOTIFY_CHARACTERISTIC_UUID);
-                updateListener = BleManager.onDidUpdateValueForCharacteristic(((data: any) => {
-                    // Handle updated characteristic values
-                    const response = String.fromCharCode(...data.value);
-                    if (responseResolverRef.current) {
-                        responseResolverRef.current(response);
-                        responseResolverRef.current = null; // reset after handling
+                disconnectListener =
+                    BleManager.onDisconnectPeripheral((data) => {
+
+                        if (data.peripheral !== device.id) {
+                            return;
+                        }
+
+                        if (isLeavingRef.current) {
+                            return;
+                        }
+
+                        Alert.alert(
+                            'Connection Lost',
+                            'Device disconnected unexpectedly.',
+                            [
+                                {
+                                    text: 'OK',
+                                    onPress: () => navigation.goBack(),
+                                },
+                            ]
+                        );
+                    });
+
+                backHandler = BackHandler.addEventListener(
+                    'hardwareBackPress',
+                    () => {
+                        handleGoBack();
+                        return true;
                     }
-                }));
+                );
+
+                await BleManager.retrieveServices(device.id);
+
+                await BleManager.startNotification(
+                    device.id,
+                    SERVICE_UUID,
+                    NOTIFY_CHARACTERISTIC_UUID
+                );
+
+                updateListener =
+                    BleManager.onDidUpdateValueForCharacteristic(
+                        (data: any) => {
+
+                            if (data.peripheral !== device.id) {
+                                return;
+                            }
+
+                            if (!mountedRef.current) {
+                                return;
+                            }
+
+                            const response =
+                                String.fromCharCode(...data.value);
+
+                            responseResolverRef.current?.(response);
+                            responseResolverRef.current = null;
+                        }
+                    );
+            } catch (err) {
+                console.error(err);
+
+                Alert.alert(
+                    'Connection Error',
+                    'Failed to communicate with device.',
+                    [
+                        {
+                            text: 'OK',
+                            onPress: () => navigation.goBack(),
+                        },
+                    ]
+                );
             }
-            catch (err) {
-                console.error('Setup error:', err);
-                Alert.alert('Connection Error', 'Failed to connect to the device. Please try again.', [
-                    { text: 'OK', onPress: () => navigation.goBack() },
-                ]);
-            }
-        }
+        };
+
         setupDevice();
+
         return () => {
-            if (disconnectListener) {
-                disconnectListener.remove();
+            mountedRef.current = false;
+
+            disconnectListener?.remove();
+            updateListener?.remove();
+            backHandler?.remove();
+
+            responseResolverRef.current = null;
+
+            BleManager.stopNotification(
+                device.id,
+                SERVICE_UUID,
+                NOTIFY_CHARACTERISTIC_UUID
+            ).catch(() => { });
+
+            if (!isLeavingRef.current) {
+                BleManager.disconnect(device.id).catch(() => { });
             }
-            if (backHandler) {
-                backHandler.remove();
-            }
-            if (updateListener) {
-                updateListener.remove();
-            }
-            (async () => {
-                await BleManager.stopNotification(device.id, SERVICE_UUID, NOTIFY_CHARACTERISTIC_UUID)
-                    .catch((err) => console.error('Stop notification error:', err))
-                await BleManager.disconnect(device.id)
-                    .catch((err) => console.warn("Disconnect error:", err))
-            })();
         };
     }, []);
 
-    const waitForResponse = (timeoutMs: number = 5000): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            // ✅ Store resolve so the listener above can call it
-            responseResolverRef.current = resolve;
+    const waitForResponse = (
+        timeoutMs: number = 5000
+    ): Promise<string> => {
 
-            // ✅ Timeout so it doesn't hang forever
-            setTimeout(() => {
-                if (responseResolverRef.current) {
-                    responseResolverRef.current = null;
-                    reject(new Error('Response timeout'));
-                }
+        return new Promise((resolve, reject) => {
+
+            const timer = setTimeout(() => {
+
+                responseResolverRef.current = null;
+
+                reject(new Error('Response timeout'));
+
             }, timeoutMs);
+
+            responseResolverRef.current = (value: string) => {
+
+                clearTimeout(timer);
+
+                resolve(value);
+            };
         });
     };
     const handleOnPressSave = async () => {
-        const hashKey = "6988"
-        await BleManager.write(
-            device.id,
-            SERVICE_UUID,
-            HASH_WRITE_CHARACTERISTIC_UUID,
-            stringToBytes(hashKey)
-        )
-        const response = await waitForResponse(5000)
-        if (response.trim() !== `{"auth":1}`) {
-            Alert.alert('Authentication Failed', 'Device rejected the hash key. Please try again.');
+        if (saving) return;
+        setSaving(true)
+        try {
+            // Step 1: Send hash key
+            await BleManager.write(
+                device.id,
+                SERVICE_UUID,
+                HASH_WRITE_CHARACTERISTIC_UUID,
+                stringToBytes("6988")
+            )
+
+            const authResponse = await waitForResponse(5000)
+            if (authResponse.trim() !== `{"auth":1}`) {
+                Alert.alert('Authentication Failed', 'Device rejected the hash key.')
+                return
+            }
+
+            // Step 2: Send config
+            const sensorId = uuid.v4() as string  // ✅ fresh UUID per save
+            const payload = JSON.stringify({
+                sensorId,
+                flatId: flatDetails?.FlatId,
+                buildingId: flatDetails?.buildingId,
+            })
+
+            const bytes = stringToBytes(payload)
+            await BleManager.requestMTU(device.id, 247)
+            await BleManager.write(
+                device.id,
+                SERVICE_UUID,
+                WRITE_CHARACTERISTIC_UUID,
+                bytes,
+                bytes.length
+            )
+
+            const configResponse = await waitForResponse(5000)
+            if (configResponse.trim() !== `{"config":1}`) {
+                Alert.alert('Configuration Failed', 'Device rejected the configuration.')
+                return
+            }
+
+            isLeavingRef.current = true;
+
+            navigation.replace("SuccessScreen", {
+                sensorType, device
+            });
+
+        } catch (err: any) {
+            // ✅ Handles timeout + any BLE write errors
+            console.error('Save error:', err)
+            Alert.alert(
+                'Error',
+                err.message === 'Response timeout'
+                    ? 'Device did not respond in time. Please try again.'
+                    : err.message ?? 'Something went wrong.'
+            )
+        } finally {
+            setSaving(false)  // ✅ always runs
+        }
+    }
+
+    const handleGoBack = async () => {
+
+        if (isLeavingRef.current) {
             return;
         }
-        // const payload = JSON.stringify({ sensorId: SENSORID, flatId: FlatID, buildingId: buildingID })
-        const payload = JSON.stringify({ Id: ID, password: password })
-        console.log("Payload to send: ", payload)
-        await BleManager.write(
-            device.id,
-            SERVICE_UUID,
-            WRITE_CHARACTERISTIC_UUID,
-            stringToBytes(payload)
-        )
-        // const response2 = await waitForResponse(5000)
-        // if (response2.trim() !== `{"config":1}`) {
-        //     Alert.alert('Configuration Failed', 'Device rejected the configuration data. Please try again.');
-        //     return;
-        // }
+
+        isLeavingRef.current = true;
+
+        try {
+
+            await BleManager.stopNotification(
+                device.id,
+                SERVICE_UUID,
+                NOTIFY_CHARACTERISTIC_UUID
+            );
+
+        } catch { }
+
+        try {
+
+            await BleManager.disconnect(device.id);
+
+        } catch { }
+
+        navigation.goBack();
     };
 
-    const handleGoBack = () => {
-        BleManager.disconnect(device.id)
-            .catch((err) => console.warn("Disconnect error:", err))
-            .finally(() => navigation.goBack());
-    };
+    const { flatDetails } = useSession();
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <SafeAreaView style={styles.container}>
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleGoBack}>
@@ -163,47 +271,46 @@ const DeviceDetails = () => {
                 </View>
 
                 {/* Flat Details Card */}
-                {/* <View style={styles.sectionCard}>
+                <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Flat Details</Text>
 
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Building</Text>
-                        <Text style={styles.detailValue}>PowerHouse Apartments</Text>
+                        <Text style={styles.detailValue}>{flatDetails?.buildingName}</Text>
                     </View>
                     <View style={styles.divider} />
 
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Block</Text>
-                        <Text style={styles.detailValue}>A</Text>
+                        <Text style={styles.detailValue}>{flatDetails?.buildingId}</Text>
                     </View>
                     <View style={styles.divider} />
 
                     <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Flat Number</Text>
-                        <Text style={styles.detailValue}>101</Text>
+                        <Text style={styles.detailValue}>{flatDetails?.FlatName}</Text>
                     </View>
-                </View> */}
-
-                <View style={styles.sectionCard}>
-                    <Text style={styles.sectionTitle}>ID</Text>
-                    <TextInput value={ID} onChangeText={(text: string) => setID(text)} placeholder='Enter ID' style={{ borderBottomWidth: 1, borderColor: '#E5E7EB', paddingVertical: 8, marginBottom: 12 }} />
-                    <Text style={styles.sectionTitle}>Password</Text>
-                    <TextInput value={password} onChangeText={(text: string) => setPassword(text)} placeholder='Enter Password' style={{ borderBottomWidth: 1, borderColor: '#E5E7EB', paddingVertical: 8, marginBottom: 12 }} />
                 </View>
 
             </ScrollView>
 
             {/* Footer Button */}
-            <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+            <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.saveButton}
                     activeOpacity={0.85}
-                    onPress={handleOnPressSave}>
-                    <Text style={styles.saveButtonText}>Save & Configure Sensor</Text>
+                    onPress={handleOnPressSave}
+                    disabled={saving}
+                >
+                    <Text style={styles.saveButtonText}>
+                        {saving
+                            ? 'Configuring...'
+                            : 'Save & Configure Sensor'}
+                    </Text>
                 </TouchableOpacity>
             </View>
 
-        </View>
+        </SafeAreaView>
     )
 }
 
@@ -214,6 +321,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#F0F2F8',
         marginTop: 10,
+        marginBottom: 20
     },
 
     // Header
