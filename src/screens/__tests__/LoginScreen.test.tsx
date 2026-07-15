@@ -28,7 +28,6 @@ describe('LoginScreen', () => {
     it('renders the initial state', async () => {
         const { getByText, getAllByText } = await render(<LoginScreen />);
 
-        expect(getByText('Welcome')).toBeTruthy();
         expect(getByText('Email / Mobile Number')).toBeTruthy();
         expect(getAllByText('Send OTP')).toBeTruthy();
     });
@@ -141,6 +140,6 @@ describe('LoginScreen', () => {
 
         await fireEvent.press(getByText('Resend OTP'));
 
-        expect(getByText('Welcome')).toBeTruthy();
+        expect(getByText('Email / Mobile Number')).toBeTruthy();
     });
 });

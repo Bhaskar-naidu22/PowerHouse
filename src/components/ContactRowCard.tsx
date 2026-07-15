@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native"
+import { Text } from './AppText'
 import { Icon } from "./IconComponent";
 
 interface ContactRowProps {
@@ -9,7 +10,7 @@ interface ContactRowProps {
 export const ContactRow = ({ icon, label, value }: ContactRowProps) => (
   <View style={styles.contactRow}>
     <View style={styles.contactIconWrap}>
-      <Icon name={icon} size={16} color="#2563EB" />
+      <Icon name={icon} size={16} color="#3B5BDB" />
     </View>
     <View>
       <Text style={styles.contactLabel}>{label}</Text>

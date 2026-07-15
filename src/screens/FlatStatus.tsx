@@ -1,9 +1,11 @@
-import { FlatList, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native'
+import { FlatList, StatusBar, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Text, TextInput } from '../components/AppText'
 import React, { useState } from 'react'
 import { ActivityCard } from '../components/ActivityCard'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
 import { RECENT_ACTIVITY_DATA } from '../utils/RecentActivityData'
+import { Icon } from '../components/IconComponent'
 
 
 type FilterStatusType = 'All' | 'Completed' | 'Pending';
@@ -31,7 +33,7 @@ const FlatStatus = () => {
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']} >
             <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
             <View style={styles.searchContainer}>
-                <Text style={styles.searchIcon}>🔍</Text>
+                <Icon name="search" size={20} color="#3B5BDB" />
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search flat or building..."
@@ -72,7 +74,7 @@ const FlatStatus = () => {
                 showsVerticalScrollIndicator={false}
             />
             <TouchableOpacity style={styles.fab} activeOpacity={0.85} onPress={handlePlusButton}>
-                <Text style={styles.fabText}>+</Text>
+                <Icon name="add" size={28} color="#FFFFFF" />
             </TouchableOpacity>
         </SafeAreaView>
     )
@@ -97,20 +99,10 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#004DE3',
+        backgroundColor: '#3B5BDB',
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 6,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-    },
-    fabText: {
-        color: '#FFFFFF',
-        fontSize: 28,
-        fontWeight: '300',
-        lineHeight: 30,
+        elevation: 0,
     },
     searchContainer: {
         flexDirection: 'row',
@@ -123,11 +115,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#E2E8F0',
         marginBottom: 16,
-    },
-    searchIcon: {
-        fontSize: 16,
-        marginRight: 8,
-        color: '#9CA3AF',
+        gap: 8,
     },
     searchInput: {
         flex: 1,

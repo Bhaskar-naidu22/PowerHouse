@@ -1,16 +1,18 @@
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from 'react-native';
+    View,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    Image,
+} from 'react-native'
+import { Text } from '../components/AppText'
 import { ContactRow } from '../components/ContactRowCard';
 import { useNavigation } from '@react-navigation/native';
 import { StatCard } from '../components/StatCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import UiModeToggle from '../components/UiModeToggle';
+import UiModeScreenPicker from '../components/UiModeScreenPicker';
 
 const ProfileScreen = () => {
   const navigation = useNavigation<any>()
@@ -20,7 +22,7 @@ const ProfileScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
 
       <ScrollView
         style={styles.scroll}
@@ -52,11 +54,11 @@ const ProfileScreen = () => {
 
         {/* ── Stats ── */}
         <View style={styles.statsRow}>
-          <StatCard icon="building" value={124} label="Flats" color="#2563EB" />
+          <StatCard icon="building" value={124} label="Flats" color="#3B5BDB" />
           <View style={styles.statDivider} />
-          <StatCard icon="sensors" value={432} label="Sensors" color="#2563EB" />
+          <StatCard icon="sensors" value={432} label="Sensors" color="#3B5BDB" />
           <View style={styles.statDivider} />
-          <StatCard icon="calendarStat" value={582} label="Days" color="#2563EB" />
+          <StatCard icon="calendarStat" value={582} label="Days" color="#3B5BDB" />
         </View>
 
         <View style={styles.section}>
@@ -88,12 +90,19 @@ const ProfileScreen = () => {
         {/* <TouchableOpacity style={styles.editBtn} activeOpacity={0.85}>
           <Text style={styles.editBtnText}>Edit Profile</Text>
         </TouchableOpacity> */}
+
         <TouchableOpacity style={styles.signOutBtn} activeOpacity={0.85} onPress={handleSignOut}>
           <Text style={styles.signOutBtnText}>Sign Out</Text>
         </TouchableOpacity>
 
         <View style={{ height: 16 }} />
       </ScrollView>
+
+      {/* TEMP: UI Mode — floating corner */}
+      <View style={styles.uiModeCorner} pointerEvents="box-none">
+        <UiModeScreenPicker compact />
+        <UiModeToggle compact />
+      </View>
 
     </SafeAreaView>
   );
@@ -107,6 +116,14 @@ const styles = StyleSheet.create({
     marginTop: -23,
     flex: 1,
     backgroundColor: '#F1F5F9',
+  },
+  uiModeCorner: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    zIndex: 50,
+    alignItems: 'flex-end',
+    maxWidth: 280,
   },
   scroll: {
     flex: 1,

@@ -1,14 +1,22 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native'
+import { Text } from '../components/AppText'
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSession } from '../contexts/SessionContexts';
+import {
+  UI_MODE_MOCK_DEVICE,
+  UI_MODE_MOCK_SENSOR,
+  useUiMode,
+} from '../contexts/UiModeContext';
 
 export default function SuccessScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { uiMode } = useUiMode();
 
-  const { sensorType, device } = route.params;
+  const sensorType = route.params?.sensorType ?? (uiMode ? UI_MODE_MOCK_SENSOR : undefined);
+  const device = route.params?.device ?? (uiMode ? UI_MODE_MOCK_DEVICE : undefined);
   const { flatDetails } = useSession();
 
   const handleAddAnother = () => {
@@ -40,13 +48,13 @@ export default function SuccessScreen() {
 
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Sensor Type</Text>
-            <Text style={styles.metaValue}>{sensorType.label} Sensor</Text>
+            <Text style={styles.metaValue}>{sensorType?.label ?? '—'} Sensor</Text>
           </View>
           <View style={styles.divider} />
 
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>Sensor ID</Text>
-            <Text style={styles.metaValue}>{device.id}</Text>
+            <Text style={styles.metaValue}>{device?.id ?? '—'}</Text>
           </View>
           <View style={styles.divider} />
 
