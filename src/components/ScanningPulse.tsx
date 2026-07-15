@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native"
+import { Text } from './AppText'
 
 type ScanningPulseProps = {
     scanning: boolean;

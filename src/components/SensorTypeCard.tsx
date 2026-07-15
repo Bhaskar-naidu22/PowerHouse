@@ -1,5 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, Text, Image, StyleSheet, View } from 'react-native';
+import { TouchableOpacity, Image, StyleSheet, View } from 'react-native'
+import { Text } from './AppText'
 import { SensorTypeOption } from '../types';
 
 type Props = {

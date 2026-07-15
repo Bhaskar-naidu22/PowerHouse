@@ -1,10 +1,16 @@
-import { Image, StyleSheet, Text, TouchableOpacity, View, ScrollView, BackHandler, Alert } from 'react-native'
+import { Image, StyleSheet, TouchableOpacity, View, ScrollView, BackHandler, Alert } from 'react-native'
+import { Text } from '../components/AppText'
 import React, { useEffect, useRef, useState } from 'react'
 import BleManager from 'react-native-ble-manager'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { stringToBytes } from '../utils/blePayload'
 import { useSession } from '../contexts/SessionContexts'
+import {
+    UI_MODE_MOCK_DEVICE,
+    UI_MODE_MOCK_SENSOR,
+    useUiMode,
+} from '../contexts/UiModeContext'
 import uuid from 'react-native-uuid'
 
 const SERVICE_UUID = "83ab48e1-32c0-42cf-95fc-5c188f7b9935";
@@ -15,13 +21,20 @@ const WRITE_CHARACTERISTIC_UUID = "83ab48e4-32c0-42cf-95fc-5c188f7b9935";
 const DeviceDetails = () => {
     const route = useRoute<any>()
     const navigation = useNavigation<any>()
-    const { device, sensorType } = route.params;
+    const { uiMode } = useUiMode()
+    const device = route.params?.device ?? (uiMode ? UI_MODE_MOCK_DEVICE : undefined);
+    const sensorType = route.params?.sensorType ?? (uiMode ? UI_MODE_MOCK_SENSOR : undefined);
     const responseResolverRef = useRef<((value: string) => void) | null>(null);
     const mountedRef = useRef(true);
     const isLeavingRef = useRef(false);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        // TEMP: skip real BLE setup while previewing UI
+        if (uiMode || !device?.id) {
+            return;
+        }
+
         let disconnectListener: any;
         let updateListener: any;
         let backHandler: any;
@@ -149,6 +162,13 @@ const DeviceDetails = () => {
     };
     const handleOnPressSave = async () => {
         if (saving) return;
+
+        // TEMP: UI Mode — skip BLE and go straight to Success
+        if (uiMode) {
+            navigation.replace('SuccessScreen', { sensorType, device });
+            return;
+        }
+
         setSaving(true)
         try {
             // Step 1: Send hash key
@@ -217,21 +237,19 @@ const DeviceDetails = () => {
 
         isLeavingRef.current = true;
 
-        try {
+        if (!uiMode && device?.id) {
+            try {
+                await BleManager.stopNotification(
+                    device.id,
+                    SERVICE_UUID,
+                    NOTIFY_CHARACTERISTIC_UUID
+                );
+            } catch { }
 
-            await BleManager.stopNotification(
-                device.id,
-                SERVICE_UUID,
-                NOTIFY_CHARACTERISTIC_UUID
-            );
-
-        } catch { }
-
-        try {
-
-            await BleManager.disconnect(device.id);
-
-        } catch { }
+            try {
+                await BleManager.disconnect(device.id);
+            } catch { }
+        }
 
         navigation.goBack();
     };

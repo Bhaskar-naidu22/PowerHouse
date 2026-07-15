@@ -1,87 +1,82 @@
-import { StyleSheet, Text, View } from "react-native";
-import { ActivityItem } from "../types";
+import { StyleSheet, View } from 'react-native';
+import { Text } from './AppText';
+import { ActivityItem } from '../types';
+import { Icon } from './IconComponent';
 
+const BRAND = '#3B5BDB';
 
 export const ActivityCard = ({ item }: { item: ActivityItem }) => {
-    const isCompleted = item.status === 'Completed';
+  const isCompleted = item.status === 'Completed';
 
-    return (
-        <View style={[
-            styles.activityCard,
-            isCompleted ? styles.borderBlue : styles.borderOrange
-        ]}>
-            {/* Icon Placeholder */}
-            <View style={[styles.activityIconWrapper, { backgroundColor: isCompleted ? '#EEF2FF' : '#FFF7ED' }]}>
-                <Text style={{ fontSize: 18, color: isCompleted ? '#2563EB' : '#EA580C' }}>🏢</Text>
-            </View>
+  return (
+    <View style={styles.activityCard}>
+      <View style={styles.activityIconWrapper}>
+        <Icon name="building" size={22} color="#FFFFFF" />
+      </View>
 
-            {/* Text Details */}
-            <View style={styles.activityMainContent}>
-                <Text style={styles.buildingText}>{item.building}</Text>
-                <Text style={styles.detailsText}>{item.details}</Text>
-            </View>
+      <View style={styles.activityMainContent}>
+        <Text style={styles.buildingText}>{item.building}</Text>
+        <Text style={styles.detailsText}>{item.details}</Text>
+      </View>
 
-            {/* Meta (Time & Status badge) */}
-            <View style={styles.activityMeta}>
-                <Text style={styles.timeText}>{item.time}</Text>
-                <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: isCompleted ? '#DCFCE7' : '#FEF3C7' }
-                ]}>
-                    <Text style={[
-                        styles.statusText,
-                        { color: isCompleted ? '#16A34A' : '#D97706' }
-                    ]}>
-                        {item.status}
-                    </Text>
-                </View>
-            </View>
+      <View style={styles.activityMeta}>
+        <View
+          style={[
+            styles.statusBadge,
+            { backgroundColor: isCompleted ? '#DCFCE7' : '#FEF3C7' },
+          ]}
+        >
+          <Text
+            style={[
+              styles.statusText,
+              { color: isCompleted ? '#16A34A' : '#D97706' },
+            ]}
+          >
+            {item.status}
+          </Text>
         </View>
-    );
+        <Text style={styles.timeText}>{item.time}</Text>
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-    activityCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 14,
-        borderLeftWidth: 5,
-        elevation: 2,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-    },
-    borderBlue: {
-        borderLeftColor: '#2563EB',
-    },
-    borderOrange: {
-        borderLeftColor: '#EA580C',
-    },
-    activityIconWrapper: {
-        width: 44,
-        height: 44,
-        borderRadius: 10,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    activityMainContent: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    
+  activityCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  activityIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    backgroundColor: '#6B8FF0',
+  },
+  activityMainContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   buildingText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#111827',
     marginBottom: 2,
   },
   detailsText: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#6B7280',
     fontWeight: '500',
   },
   activityMeta: {
@@ -91,16 +86,18 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B7280',
     fontWeight: '500',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
   },
-})
+});

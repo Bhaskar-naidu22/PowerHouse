@@ -1,16 +1,28 @@
 import React, { useState, useRef } from 'react'
 import {
-    View, Text, TextInput, TouchableOpacity,
-    StyleSheet, ScrollView, ActivityIndicator
+    View,
+    TouchableOpacity,
+    StyleSheet,
+    ScrollView,
+    ActivityIndicator,
 } from 'react-native'
+import LinearGradient from 'react-native-linear-gradient'
+import { Text, TextInput } from '../components/AppText'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import UiModeToggle from '../components/UiModeToggle'
+import UiModeScreenPicker from '../components/UiModeScreenPicker'
+import { useUiMode } from '../contexts/UiModeContext'
+import CallIcon from '../components/icons/CallIcon'
+import ArrowRightIcon from '../components/icons/ArrowRightIcon'
+import { Icon } from '../components/IconComponent'
 
 type Step = 'input' | 'otp'
 
 const LoginScreen = () => {
     const navigation = useNavigation<any>()
     const insets = useSafeAreaInsets()
+    const { uiMode } = useUiMode()
 
     const [step, setStep] = useState<Step>('input')
     const [contact, setContact] = useState('')
@@ -84,187 +96,223 @@ const LoginScreen = () => {
     }
 
     return (
-        <ScrollView
-            style={{ flex: 1 }}>
-            <View
-                style={[styles.container, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 24 }]}>
-
-                {/* Logo / Brand */}
+        <LinearGradient
+            colors={['#3B5BDB', '#FFFFFF', '#FFFFFF']}
+            locations={[0, 0.58, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.root}
+        >
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={[
+                    styles.container,
+                    {
+                        paddingTop: insets.top + 28,
+                        paddingBottom: insets.bottom + 24,
+                    },
+                ]}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                showsVerticalScrollIndicator={false}
+                // Keep layout fixed — do not scroll when keyboard opens
+                scrollEnabled={false}
+            >
                 <View style={styles.brandSection}>
-                    <View style={styles.logoCircle}>
-                        <Text style={styles.logoText}>F</Text>
-                    </View>
                     <Text style={styles.brandName}>FieldLink</Text>
                     <Text style={styles.brandTagline}>Smart Sensor Management</Text>
                 </View>
 
-                {/* Card */}
-                <View style={styles.card}>
-                    {step === 'input' ? (
-                        <>
-                            <Text style={styles.cardTitle}>Welcome</Text>
-                            <Text style={styles.cardSubtitle}>
-                                Enter your email or mobile number to receive an OTP
-                            </Text>
-
-                            <Text style={styles.inputLabel}>Email / Mobile Number</Text>
-                            <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
-                                <Text style={styles.inputIcon}>
-                                    {isEmail ? '✉' : '📱'}
-                                </Text>
-                                <TextInput
-                                    testID='contact-input'
-                                    style={styles.input}
-                                    value={contact}
-                                    onChangeText={(t) => { setContact(t); setError('') }}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                    placeholder='Enter Email/Mobile Number'
-                                />
-                            </View>
-
-                            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                            <TouchableOpacity
-                                style={[styles.primaryButton, (!isValid || loading) && styles.buttonDisabled]}
-                                activeOpacity={0.85}
-                                onPress={handleRequestOtp}
-                                disabled={!isValid || loading}>
-                                {loading
-                                    ? <ActivityIndicator color="#fff" />
-                                    : <Text style={styles.primaryButtonText}>Send OTP</Text>}
-                            </TouchableOpacity>
-                        </>
-                    ) : (
-                        <>
-                            <Text style={styles.cardTitle}>Verify OTP</Text>
-                            <Text style={styles.cardSubtitle}>
-                                We sent a 4-digit code to{'\n'}
-                                <Text style={styles.contactHighlight}>{contact}</Text>
-                            </Text>
-
-                            {/* OTP Boxes */}
-                            <View style={styles.otpRow}>
-                                {otp.map((digit, index) => (
+                <View style={styles.middleSection}>
+                    {!uiMode ? (
+                    <View style={styles.card}>
+                        {step === 'input' ? (
+                            <>
+                                <Text style={styles.inputLabel}>Email / Mobile Number</Text>
+                                <View style={[styles.inputWrapper, error ? styles.inputError : null]}>
+                                    <View style={styles.inputIcon}>
+                                        {isEmail ? (
+                                            <Icon name="email" size={20} color="#3B5BDB" />
+                                        ) : (
+                                            <CallIcon size={20} color="#3B5BDB" />
+                                        )}
+                                    </View>
                                     <TextInput
-                                        testID={`otp-${index}`}
-                                        key={index}
-                                        ref={otpRefs[index]}
-                                        style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
-                                        value={digit}
-                                        onChangeText={(v) => handleOtpChange(v.slice(-1), index)}
-                                        onKeyPress={({ nativeEvent }) => {
-                                            if (nativeEvent.key === 'Backspace') handleOtpBackspace(digit, index)
-                                        }}
-                                        keyboardType="number-pad"
-                                        maxLength={1}
-                                        textAlign="center"
+                                        testID='contact-input'
+                                        style={styles.input}
+                                        value={contact}
+                                        onChangeText={(t) => { setContact(t); setError('') }}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        placeholder="Enter email or mobile number"
+                                        placeholderTextColor="#9CA3AF"
                                     />
-                                ))}
-                            </View>
+                                </View>
 
-                            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-                            <TouchableOpacity
-                                style={[styles.primaryButton, loading && styles.buttonDisabled]}
-                                activeOpacity={0.85}
-                                onPress={handleVerifyOtp}
-                                disabled={loading}>
-                                {loading
-                                    ? <ActivityIndicator color="#fff" />
-                                    : <Text style={styles.primaryButtonText}>Verify & Continue →</Text>}
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.resendRow} onPress={handleResend}>
-                                <Text style={styles.resendText}>
-                                    Didn't receive it?{' '}
-                                    <Text style={styles.resendLink}>Resend OTP</Text>
+                                <TouchableOpacity
+                                    style={[
+                                        styles.primaryButton,
+                                        loading && styles.buttonDisabled,
+                                    ]}
+                                    activeOpacity={0.85}
+                                    onPress={handleRequestOtp}
+                                    disabled={!isValid || loading}>
+                                    {loading
+                                        ? <ActivityIndicator color="#FFFFFF" />
+                                        : (
+                                            <>
+                                                <Text style={styles.primaryButtonText}>Send OTP</Text>
+                                                <View style={styles.arrowCircle}>
+                                                    <ArrowRightIcon size={20} color="#3B5BDB" />
+                                                </View>
+                                            </>
+                                        )}
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <>
+                                <Text style={styles.cardTitle}>Verify OTP</Text>
+                                <Text style={styles.cardSubtitle}>
+                                    We sent a 4-digit code to{'\n'}
+                                    <Text style={styles.contactHighlight}>{contact}</Text>
                                 </Text>
-                            </TouchableOpacity>
-                        </>
-                    )}
+
+                                <View style={styles.otpRow}>
+                                    {otp.map((digit, index) => (
+                                        <TextInput
+                                            testID={`otp-${index}`}
+                                            key={index}
+                                            ref={otpRefs[index]}
+                                            style={[styles.otpBox, digit ? styles.otpBoxFilled : null]}
+                                            value={digit}
+                                            onChangeText={(v) => handleOtpChange(v.slice(-1), index)}
+                                            onKeyPress={({ nativeEvent }) => {
+                                                if (nativeEvent.key === 'Backspace') handleOtpBackspace(digit, index)
+                                            }}
+                                            keyboardType="number-pad"
+                                            maxLength={1}
+                                            textAlign="center"
+                                        />
+                                    ))}
+                                </View>
+
+                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                                <TouchableOpacity
+                                    style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                                    activeOpacity={0.85}
+                                    onPress={handleVerifyOtp}
+                                    disabled={loading}>
+                                    {loading
+                                        ? <ActivityIndicator color="#fff" />
+                                        : (
+                                            <>
+                                                <Text style={styles.primaryButtonText}>Verify & Continue</Text>
+                                                <View style={styles.arrowCircle}>
+                                                    <ArrowRightIcon size={20} color="#3B5BDB" />
+                                                </View>
+                                            </>
+                                        )}
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={styles.resendRow} onPress={handleResend}>
+                                    <Text style={styles.resendText}>
+                                        Didn't receive it?{' '}
+                                        <Text style={styles.resendLink}>Resend OTP</Text>
+                                    </Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                    ) : null}
+
+                    {!uiMode ? (
+                    <Text style={styles.footerNote}>
+                        By continuing, you agree to FieldLink's Terms & Condition's.
+                    </Text>
+                    ) : null}
                 </View>
+            </ScrollView>
 
-                <Text style={styles.footerNote}>
-                    By continuing, you agree to FieldLink's Terms & Condition's.
-                </Text>
-
+            {/* TEMP: UI Mode — floating corner, out of main UI flow */}
+            <View
+                pointerEvents="box-none"
+                style={[
+                    styles.uiModeCorner,
+                    { bottom: insets.bottom + 16, right: 16 },
+                ]}
+            >
+                <UiModeScreenPicker compact />
+                <UiModeToggle compact />
             </View>
-        </ScrollView>
+        </LinearGradient>
     )
 }
 
 export default LoginScreen
 
 const styles = StyleSheet.create({
+    root: {
+        flex: 1,
+    },
+    scroll: {
+        flex: 1,
+        backgroundColor: 'transparent',
+    },
     container: {
         flexGrow: 1,
-        backgroundColor: '#F0F2F8',
         paddingHorizontal: 20,
         alignItems: 'center',
-        justifyContent: 'center',
     },
 
-    // Brand
     brandSection: {
         alignItems: 'center',
-        marginBottom: 100,
-    },
-    logoCircle: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#3B5BDB',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
-        elevation: 4,
-        shadowColor: '#3B5BDB',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
-    logoText: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#fff',
+        width: '100%',
+        marginTop: 24,
+        marginBottom: 8,
     },
     brandName: {
         fontSize: 26,
-        fontWeight: '800',
-        color: '#111827',
+        fontWeight: '700',
+        color: '#FFFFFF',
         letterSpacing: 0.5,
     },
     brandTagline: {
-        fontSize: 13,
-        color: '#9CA3AF',
-        marginTop: 4,
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.85)',
+        marginTop: 2,
     },
 
-    // Card
+    middleSection: {
+        flex: 1,
+        width: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        // Bias form upward without moving brand
+        paddingBottom: 72,
+    },
+
     card: {
         width: '100%',
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'transparent',
         borderRadius: 20,
-        padding: 24,
-        elevation: 1,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-        marginBottom: 20,
+        paddingHorizontal: 24,
+        paddingVertical: 8,
+        marginBottom: 0,
     },
     cardTitle: {
-        fontSize: 22,
-        fontWeight: '800',
-        color: '#111827',
-        marginBottom: 6,
+        fontSize: 26,
+        fontWeight: '700',
+        color: '#3B5BDB',
+        marginBottom: 0,
     },
     cardSubtitle: {
-        fontSize: 13,
+        fontSize: 12,
         color: '#6B7280',
-        lineHeight: 20,
+        lineHeight: 17,
         marginBottom: 24,
     },
     contactHighlight: {
@@ -272,30 +320,32 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
-    // Input
     inputLabel: {
         fontSize: 13,
         fontWeight: '600',
         color: '#374151',
         marginBottom: 8,
+        textAlign: 'center',
+        width: '100%',
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F9FAFB',
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#E5E7EB',
+        borderRadius: 26,
+        borderWidth: 0,
         paddingHorizontal: 14,
         marginBottom: 8,
         height: 52,
     },
     inputError: {
+        borderWidth: 1.5,
         borderColor: '#EF4444',
     },
     inputIcon: {
-        fontSize: 16,
         marginRight: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     input: {
         flex: 1,
@@ -303,7 +353,6 @@ const styles = StyleSheet.create({
         color: '#111827',
     },
 
-    // OTP
     otpRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -327,7 +376,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#EEF2FF',
     },
 
-    // Error
     errorText: {
         fontSize: 12,
         color: '#EF4444',
@@ -335,30 +383,42 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
 
-    // Button
     primaryButton: {
         backgroundColor: '#3B5BDB',
         borderRadius: 30,
-        paddingVertical: 16,
+        paddingVertical: 8,
+        paddingLeft: 28,
+        paddingRight: 8,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         marginTop: 8,
+        width: '100%',
         elevation: 2,
         shadowColor: '#3B5BDB',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
+        minHeight: 60,
     },
     buttonDisabled: {
-        opacity: 0.5,
+        opacity: 0.7,
     },
     primaryButtonText: {
         color: '#FFFFFF',
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: '400',
         letterSpacing: 0.3,
     },
+    arrowCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 
-    // Resend
     resendRow: {
         alignItems: 'center',
         marginTop: 16,
@@ -372,11 +432,18 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 
-    // Footer
     footerNote: {
         fontSize: 11,
         color: '#9CA3AF',
         textAlign: 'center',
         lineHeight: 18,
+        marginTop: 16,
+        paddingHorizontal: 24,
+    },
+    uiModeCorner: {
+        position: 'absolute',
+        zIndex: 50,
+        alignItems: 'flex-end',
+        maxWidth: 280,
     },
 })

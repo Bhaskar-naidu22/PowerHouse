@@ -1,14 +1,20 @@
 import React, { useState } from 'react'
 import {
-    View, Text, TouchableOpacity, StyleSheet,
-    ScrollView, TextInput, FlatList, Modal,
-    Button
+    View,
+    TouchableOpacity,
+    StyleSheet,
+    ScrollView,
+    FlatList,
+    Modal,
+    Button,
 } from 'react-native'
+import { Text, TextInput } from '../components/AppText'
 import { useNavigation } from '@react-navigation/native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Dropdown from '../components/DropDown'
 import { Building, Flat } from '../types'
 import { useSession } from '../contexts/SessionContexts'
+import { Icon } from '../components/IconComponent'
 
 const BUILDINGS: Building[] = [
     { id: 'b1', name: 'Sky Towers', description: 'Sky Towers features a high-density 3-phase electrical backbone. Ensure all sensors are calibrated for industrial-grade interference protection.', maintenance: 'Weekly', accessLevel: 'Standard' },
@@ -48,7 +54,7 @@ function PickerModal<T>({ visible, title, data, searchQuery, onSearch, onSelect,
                     <Text style={styles.modalTitle}>{title}</Text>
 
                     <View style={styles.modalSearch}>
-                        <Text style={styles.inputIcon}>🔍</Text>
+                        <Icon name="search" size={20} color="#3B5BDB" />
                         <TextInput
                             style={styles.modalSearchInput}
                             placeholder="Search..."
@@ -65,7 +71,7 @@ function PickerModal<T>({ visible, title, data, searchQuery, onSearch, onSelect,
                         renderItem={({ item }) => (
                             <TouchableOpacity style={styles.modalItem} onPress={() => onSelect(item)}>
                                 <Text style={styles.modalItemText}>{String(item[labelKey])}</Text>
-                                <Text style={styles.modalItemArrow}>›</Text>
+                                <Icon name="chevronRight" size={22} color="#3B5BDB" />
                             </TouchableOpacity>
                         )}
                         ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
@@ -434,11 +440,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         height: 46,
         marginBottom: 12,
-    },
-    inputIcon: {
-        fontSize: 14,
-        marginRight: 8,
-        color: '#9CA3AF',
+        gap: 8,
     },
     modalSearchInput: {
         flex: 1,
@@ -455,10 +457,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#111827',
         fontWeight: '500',
-    },
-    modalItemArrow: {
-        fontSize: 20,
-        color: '#9CA3AF',
     },
     modalDivider: {
         height: 1,

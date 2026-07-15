@@ -1,25 +1,41 @@
-import { FlatList, PermissionsAndroid, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { FlatList, PermissionsAndroid, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Text } from '../components/AppText'
 import React, { useCallback, useEffect, useState } from 'react'
 import BleManager from 'react-native-ble-manager'
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native'
 import ScanningPulse from '../components/ScanningPulse'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import DeviceCard from '../components/DeviceCard'
+import {
+    UI_MODE_MOCK_DEVICE,
+    UI_MODE_MOCK_SENSOR,
+    useUiMode,
+} from '../contexts/UiModeContext'
 
 const NearByDeviceScreen = () => {
     const route = useRoute<any>()
-    const { sensorType } = route.params
+    const { uiMode } = useUiMode()
+    const sensorType = route.params?.sensorType ?? (uiMode ? UI_MODE_MOCK_SENSOR : undefined)
     const navigation = useNavigation<any>()
-    const [scanning, setScanning] = useState<boolean>(true)
-    const [devices, setDevices] = useState<any[]>([])
+    const [scanning, setScanning] = useState<boolean>(!uiMode)
+    const [devices, setDevices] = useState<any[]>(
+        uiMode ? [UI_MODE_MOCK_DEVICE] : []
+    )
 
 
     useEffect(() => {
+        if (uiMode) return;
         BleManager.start();
     }, []);
 
     useFocusEffect(
         useCallback(() => {
+            if (uiMode) {
+                setScanning(false);
+                setDevices([UI_MODE_MOCK_DEVICE]);
+                return;
+            }
+
             requestPermissions().then((granted) => {
                 if (granted) {
                     startScanning();
@@ -29,7 +45,7 @@ const NearByDeviceScreen = () => {
             return () => {
                 BleManager.stopScan();
             };
-        }, [])
+        }, [uiMode])
     );
 
     useEffect(() => {
@@ -94,6 +110,12 @@ const NearByDeviceScreen = () => {
     }
 
     const handleConnect = async (device: any) => {
+        // TEMP: UI Mode — skip BLE connect
+        if (uiMode) {
+            navigation.navigate('DeviceDetails', { device, sensorType });
+            return;
+        }
+
         try {
             await BleManager.connect(device.id);
 
@@ -128,12 +150,12 @@ const NearByDeviceScreen = () => {
                 ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                 ListHeaderComponent={() => (
                     <Text style={styles.sectionTitle}>
-                        Available {sensorType.label} Sensors: {devices?.length ?? 0}
+                        Available {sensorType?.label} Sensors: {devices?.length ?? 0}
                     </Text>
                 )}
                 ListEmptyComponent={() => (
                     <Text style={styles.noDevicesText}>
-                        Make Sure your {sensorType.label} sensor is powered on and in range. {'\n'}
+                        Make Sure your {sensorType?.label} sensor is powered on and in range. {'\n'}
                         Tap the scan button above to refresh.
                     </Text>
                 )}

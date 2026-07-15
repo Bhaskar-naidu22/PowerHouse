@@ -1,57 +1,74 @@
-import { FlatList, Image, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
+import React from 'react';
+import {
+  FlatList,
+  Image,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { Text } from '../components/AppText';
 import { StatCard } from '../components/StatCard';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityCard } from '../components/ActivityCard';
 import { RECENT_ACTIVITY_DATA } from '../utils/RecentActivityData';
+import { Icon } from '../components/IconComponent';
 
-
+const BRAND = '#3B5BDB';
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>()
-  const handlePlusButton = () => {
-    navigation.navigate("PropertySelectionScreen")
-  }
-  const handleProfileIconPress = () => {
-    navigation.navigate("MainTabs", { screen: "Profile" });
-  }
-  const handleViewAll = () => {
-    navigation.navigate("MainTabs", { screen: "Flats" })
-  }
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+  const navigation = useNavigation<any>();
 
-      {/* Header Profile Section */}
+  const handlePlusButton = () => {
+    navigation.navigate('PropertySelectionScreen');
+  };
+  const handleProfileIconPress = () => {
+    navigation.navigate('MainTabs', { screen: 'Profile' });
+  };
+  const handleViewAll = () => {
+    navigation.navigate('MainTabs', { screen: 'Flats' });
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
       <View style={styles.header}>
         <View>
-          <Text style={styles.greetingText}>
-            Hii, Lokesh <Text style={styles.waveEmoji}>👋</Text>
-          </Text>
+          <Text style={styles.greetingLabel}>Welcome back</Text>
+          <View style={styles.greetingRow}>
+            <Text style={styles.greetingText}>Hii, Lokesh</Text>
+            <Icon name="handWave" size={20} color={BRAND} />
+          </View>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.notificationButton} activeOpacity={0.7}>
-            <Text style={{ fontSize: 22 }}>🔔</Text>
+            <Icon name="notifications" size={22} color={BRAND} />
           </TouchableOpacity>
           <TouchableOpacity testID="profile-icon" onPress={handleProfileIconPress}>
             <Image
               source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
               style={styles.avatar}
-            /></TouchableOpacity>
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Metrics Grid Row */}
-      <View style={styles.statsContainer}>
-        <StatCard label="Flats Completed" value="12" icon="building" color="#2563EB" />
+      <LinearGradient
+        colors={['#3B5BDB', '#93C5FD']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.statsContainer}
+      >
+        <StatCard label="Flats Completed" value="12" icon="building" color="#FFFFFF" light />
         <View style={styles.statDivider} />
-        <StatCard label="Sensors" value="148" icon="sensors" color="#16A34A" />
+        <StatCard label="Sensors" value="148" icon="sensors" color="#FFFFFF" light />
         <View style={styles.statDivider} />
-        <StatCard label="Pending" value="04" icon="pending" color="#EA580C" />
-      </View>
+        <StatCard label="Pending" value="04" icon="pending" color="#FFFFFF" light />
+      </LinearGradient>
 
-      {/* Recent Activity Label Row */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Activity</Text>
         <TouchableOpacity activeOpacity={0.6} onPress={handleViewAll}>
@@ -59,9 +76,8 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Activity List Section */}
       <FlatList
-        testID='recent-activity'
+        testID="recent-activity"
         data={RECENT_ACTIVITY_DATA}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <ActivityCard item={item} />}
@@ -69,146 +85,117 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Floating Action Button (FAB) */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.85} onPress={handlePlusButton}>
-        <Text style={styles.fabText}>+</Text>
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.85}
+        onPress={handlePlusButton}
+      >
+        <Icon name="add" size={28} color="#FFFFFF" />
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC', // Soft modern background
+    backgroundColor: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  greetingLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   greetingText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#0F172A',
-  },
-  waveEmoji: {
-    fontSize: 18,
+    color: '#111827',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
   },
   notificationButton: {
-    position: 'relative',
-    padding: 4,
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F9FAFB',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E7EB',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 28,
-    marginTop: 20,
-    gap: 10,
+    alignItems: 'stretch',
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 24,
+    paddingVertical: 18,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   statDivider: {
-    width: 5,
-    backgroundColor: '#b9d0ef',
-    marginVertical: 6,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    // paddingvertical: 16,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    elevation: 4,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-  },
-  statCardActive: {
-    backgroundColor: '#2563EB',
-  },
-  statCardInactive: {
-    backgroundColor: '#FFFFFF',
-  },
-  statIcon: {
-    fontSize: 20,
-    marginBottom: 6,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    lineHeight: 26,
-  },
-  statTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    marginVertical: 4,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#111827',
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#2563EB',
+    color: BRAND,
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100, // Clearance for FAB placement
-    gap: 14,
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+    gap: 10,
   },
   fab: {
     position: 'absolute',
-    bottom: 40,
-    right: 40,
+    bottom: 28,
+    right: 24,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#004DE3',
+    backgroundColor: BRAND,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  fabText: {
-    color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '300',
-    lineHeight: 30,
+    elevation: 0,
   },
 });
